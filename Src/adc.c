@@ -19,7 +19,7 @@ void MX_ADC1_Init(void)
   hadc1.Init.NbrOfConversion = 2;
   if (HAL_ADC_Init(&hadc1) != HAL_OK)
   {
-    Error_Handler();
+//    return false;
   }
   /** Configure Regular Channel
   */
@@ -28,7 +28,7 @@ void MX_ADC1_Init(void)
   sConfig.SamplingTime = ADC_SAMPLETIME_239CYCLES_5;
   if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
   {
-    Error_Handler();
+//    return false;
   }
   /** Configure Regular Channel
   */
@@ -36,7 +36,7 @@ void MX_ADC1_Init(void)
   sConfig.Rank = ADC_REGULAR_RANK_2;
   if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
   {
-    Error_Handler();
+//    return false;
   }
 
 }
@@ -71,7 +71,7 @@ void HAL_ADC_MspInit(ADC_HandleTypeDef* adcHandle)
     hdma_adc1.Init.Priority = DMA_PRIORITY_LOW;
     if (HAL_DMA_Init(&hdma_adc1) != HAL_OK)
     {
-      Error_Handler();
+//      return false;
     }
 
     __HAL_LINKDMA(adcHandle,DMA_Handle,hdma_adc1);

@@ -17,7 +17,7 @@ void MX_USART1_UART_Init(void)
   huart1.Init.OverSampling = UART_OVERSAMPLING_16;
   if (HAL_HalfDuplex_Init(&huart1) != HAL_OK)
   {
-    Error_Handler();
+//    return false;
   }
 
 }
