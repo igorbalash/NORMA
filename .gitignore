@@ -1,0 +1,13 @@
+EWARM/Debug
+settings
+EWARM/*.dep
+*.o
+*.a
+
+
+
+
+
+
+
+
