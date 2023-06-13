@@ -2,39 +2,9 @@
 #include "stm32f1xx_it.h"
 #include "FreeRTOS.h"
 #include "task.h"
+
 /* Private includes ----------------------------------------------------------*/
-/* USER CODE BEGIN Includes */
-/* USER CODE END Includes */
-
-/* Private typedef -----------------------------------------------------------*/
-/* USER CODE BEGIN TD */
-
-/* USER CODE END TD */
-
-/* Private define ------------------------------------------------------------*/
-/* USER CODE BEGIN PD */
-
-/* USER CODE END PD */
-
-/* Private macro -------------------------------------------------------------*/
-/* USER CODE BEGIN PM */
-
-/* USER CODE END PM */
-
-/* Private variables ---------------------------------------------------------*/
-/* USER CODE BEGIN PV */
-
-/* USER CODE END PV */
-
-/* Private function prototypes -----------------------------------------------*/
-/* USER CODE BEGIN PFP */
-
-/* USER CODE END PFP */
-
-/* Private user code ---------------------------------------------------------*/
-/* USER CODE BEGIN 0 */
-
-/* USER CODE END 0 */
+#include "stm32f1xx_hal.h"
 
 /* External variables --------------------------------------------------------*/
 extern DMA_HandleTypeDef hdma_adc1;
@@ -48,12 +18,15 @@ extern TIM_HandleTypeDef htim1;
   */
 void NMI_Handler(void)
 {
-  /* USER CODE BEGIN NonMaskableInt_IRQn 0 */
-
-  /* USER CODE END NonMaskableInt_IRQn 0 */
-  /* USER CODE BEGIN NonMaskableInt_IRQn 1 */
-
-  /* USER CODE END NonMaskableInt_IRQn 1 */
+#ifdef RELEASE_MODE
+	// В релизной прошивке перезагружаем МК
+	HAL_NVIC_SystemReset();
+#else
+	// В отладочной прошивке мигаем светодиодом и
+	// можем сделать attach to runing targer, чтобы посмотреть из-за чего произошло исключение
+	asm("BKPT #0");
+	while (1);
+#endif
 }
 
 /**
@@ -61,14 +34,15 @@ void NMI_Handler(void)
   */
 void HardFault_Handler(void)
 {
-  /* USER CODE BEGIN HardFault_IRQn 0 */
-
-  /* USER CODE END HardFault_IRQn 0 */
-  while (1)
-  {
-    /* USER CODE BEGIN W1_HardFault_IRQn 0 */
-    /* USER CODE END W1_HardFault_IRQn 0 */
-  }
+#ifdef RELEASE_MODE
+	// В релизной прошивке перезагружаем МК
+	HAL_NVIC_SystemReset();
+#else
+	// В отладочной прошивке мигаем светодиодом и
+	// можем сделать attach to runing targer, чтобы посмотреть из-за чего произошло исключение
+	asm("BKPT #0");
+	while (1);
+#endif
 }
 
 /**
@@ -76,14 +50,15 @@ void HardFault_Handler(void)
   */
 void MemManage_Handler(void)
 {
-  /* USER CODE BEGIN MemoryManagement_IRQn 0 */
-
-  /* USER CODE END MemoryManagement_IRQn 0 */
-  while (1)
-  {
-    /* USER CODE BEGIN W1_MemoryManagement_IRQn 0 */
-    /* USER CODE END W1_MemoryManagement_IRQn 0 */
-  }
+#ifdef RELEASE_MODE
+	// В релизной прошивке перезагружаем МК
+	HAL_NVIC_SystemReset();
+#else
+	// В отладочной прошивке мигаем светодиодом и
+	// можем сделать attach to runing targer, чтобы посмотреть из-за чего произошло исключение
+	asm("BKPT #0");
+	while (1);
+#endif
 }
 
 /**
@@ -91,14 +66,15 @@ void MemManage_Handler(void)
   */
 void BusFault_Handler(void)
 {
-  /* USER CODE BEGIN BusFault_IRQn 0 */
-
-  /* USER CODE END BusFault_IRQn 0 */
-  while (1)
-  {
-    /* USER CODE BEGIN W1_BusFault_IRQn 0 */
-    /* USER CODE END W1_BusFault_IRQn 0 */
-  }
+#ifdef RELEASE_MODE
+	// В релизной прошивке перезагружаем МК
+	HAL_NVIC_SystemReset();
+#else
+	// В отладочной прошивке мигаем светодиодом и
+	// можем сделать attach to runing targer, чтобы посмотреть из-за чего произошло исключение
+	asm("BKPT #0");
+	while (1);
+#endif
 }
 
 /**
@@ -106,14 +82,15 @@ void BusFault_Handler(void)
   */
 void UsageFault_Handler(void)
 {
-  /* USER CODE BEGIN UsageFault_IRQn 0 */
-
-  /* USER CODE END UsageFault_IRQn 0 */
-  while (1)
-  {
-    /* USER CODE BEGIN W1_UsageFault_IRQn 0 */
-    /* USER CODE END W1_UsageFault_IRQn 0 */
-  }
+#ifdef RELEASE_MODE
+	// В релизной прошивке перезагружаем МК
+	HAL_NVIC_SystemReset();
+#else
+	// В отладочной прошивке мигаем светодиодом и
+	// можем сделать attach to runing targer, чтобы посмотреть из-за чего произошло исключение
+	asm("BKPT #0");
+	while (1);
+#endif
 }
 
 /**
@@ -121,12 +98,15 @@ void UsageFault_Handler(void)
   */
 void DebugMon_Handler(void)
 {
-  /* USER CODE BEGIN DebugMonitor_IRQn 0 */
-
-  /* USER CODE END DebugMonitor_IRQn 0 */
-  /* USER CODE BEGIN DebugMonitor_IRQn 1 */
-
-  /* USER CODE END DebugMonitor_IRQn 1 */
+#ifdef RELEASE_MODE
+	// В релизной прошивке перезагружаем МК
+	HAL_NVIC_SystemReset();
+#else
+	// В отладочной прошивке мигаем светодиодом и
+	// можем сделать attach to runing targer, чтобы посмотреть из-за чего произошло исключение
+	asm("BKPT #0");
+	while (1);
+#endif
 }
 
 /******************************************************************************/

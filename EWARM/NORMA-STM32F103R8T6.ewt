@@ -1215,6 +1215,15 @@
                 </file>
             </group>
             <group>
+                <name>reset</name>
+                <file>
+                    <name>$PROJ_DIR$\..\Src\reset\reset.c</name>
+                </file>
+                <file>
+                    <name>$PROJ_DIR$\..\Src\reset\reset.h</name>
+                </file>
+            </group>
+            <group>
                 <name>version</name>
                 <file>
                     <name>$PROJ_DIR$\..\Src\version\defs.h</name>

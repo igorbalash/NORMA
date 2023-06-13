@@ -362,6 +362,7 @@
                     <state>$PROJ_DIR$\..\Src\core</state>
                     <state>$PROJ_DIR$\..\Src\leds</state>
                     <state>$PROJ_DIR$\..\Src</state>
+                    <state>$PROJ_DIR$\..\Src\reset</state>
                 </option>
                 <option>
                     <name>CCStdIncCheck</name>
@@ -1090,6 +1091,15 @@
                 </file>
                 <file>
                     <name>$PROJ_DIR$\..\Src\leds\leds.h</name>
+                </file>
+            </group>
+            <group>
+                <name>reset</name>
+                <file>
+                    <name>$PROJ_DIR$\..\Src\reset\reset.c</name>
+                </file>
+                <file>
+                    <name>$PROJ_DIR$\..\Src\reset\reset.h</name>
                 </file>
             </group>
             <group>

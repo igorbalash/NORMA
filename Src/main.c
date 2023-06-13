@@ -1,5 +1,8 @@
 #include "app_config.h"
+#include "stm32f1xx_hal.h"
 #include "clock_system.h"
+#include "main_tasks.h"
+#include "reset.h"
 #include "leds.h"
 
 //===================================================================================
@@ -21,6 +24,9 @@ int main(void)
 	// Задержка перед стартом программы
 	HAL_Delay(APP_START_DELAY_MS);
 
+	// Инициализация IWDG
+	reset_iwdg_init();
+
 	// Инициализация модулей
 	leds_init();
 
@@ -32,10 +38,13 @@ int main(void)
 	MX_TIM3_Init();
 
 	// Инициализация задач FreeRTOS
-	main_tasks_initTasks(0);
+	main_tasks_initTasks();
 
 	// Запуск планировщика
 	osKernelStart();
 
 	while (1) {};
+
+	// Should never come here, else reset MCU
+	HAL_NVIC_SystemReset();
 }

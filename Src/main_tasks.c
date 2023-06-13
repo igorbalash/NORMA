@@ -11,6 +11,7 @@ Author: Unic-Lab <https://unic-lab.ru/>
 #include "stm32f1xx_hal.h"
 
 #include "leds.h"
+#include "reset.h"
 
 //===================================================================================
 
@@ -42,5 +43,10 @@ void taskFunc_superloop(void const* argument)
 		leds_ledOff(GREEN);
 		leds_ledOn(RED);
 		osDelay(500);
+
+		reset_iwdg_refresh();
 	}
+
+	// Should never come here, else reset MCU
+	HAL_NVIC_SystemReset();
 }
