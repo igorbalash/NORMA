@@ -1,3 +1,4 @@
+#include "app_config.h"
 #include "clock_system.h"
 #include "leds.h"
 
@@ -10,15 +11,18 @@
 #include "usart.h"
 #include "gpio.h"
 
-
-void SystemClock_Config(void);
 void MX_FREERTOS_Init(void);
 
 int main(void)
 {
+	// Инициализация системы тактирования
 	clock_system_init();
-	leds_init();
 
+	// Задержка перед стартом программы
+	HAL_Delay(APP_START_DELAY_MS);
+
+	// Инициализация модулей
+	leds_init();
 
 	/* Initialize all configured peripherals */
 	MX_GPIO_Init();
@@ -27,15 +31,11 @@ int main(void)
 	MX_USART1_UART_Init();
 	MX_TIM3_Init();
 
-	/* Call init function for freertos objects (in freertos.c) */
-	MX_FREERTOS_Init();
-	/* Start scheduler */
+	// Инициализация задач FreeRTOS
+	main_tasks_initTasks(0);
+
+	// Запуск планировщика
 	osKernelStart();
 
-	/* We should never get here as control is now taken by the scheduler */
-	/* Infinite loop */
-	while (1)
-	{
-
-	}
+	while (1) {};
 }

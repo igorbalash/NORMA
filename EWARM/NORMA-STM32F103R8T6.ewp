@@ -361,6 +361,7 @@
                     <state>$PROJ_DIR$\..\Src\version</state>
                     <state>$PROJ_DIR$\..\Src\core</state>
                     <state>$PROJ_DIR$\..\Src\leds</state>
+                    <state>$PROJ_DIR$\..\Src</state>
                 </option>
                 <option>
                     <name>CCStdIncCheck</name>
@@ -1106,6 +1107,15 @@
                     <name>$PROJ_DIR$\..\Src\version\version.h</name>
                 </file>
             </group>
+            <file>
+                <name>$PROJ_DIR$\..\Src\app_config.h</name>
+            </file>
+            <file>
+                <name>$PROJ_DIR$\..\Src\main_tasks.c</name>
+            </file>
+            <file>
+                <name>$PROJ_DIR$\..\Src\main_tasks.h</name>
+            </file>
         </group>
         <group>
             <name>User</name>
@@ -1114,9 +1124,6 @@
             </file>
             <file>
                 <name>$PROJ_DIR$\..\Src\dma.c</name>
-            </file>
-            <file>
-                <name>$PROJ_DIR$\..\Src\freertos.c</name>
             </file>
             <file>
                 <name>$PROJ_DIR$\..\Src\gpio.c</name>
