@@ -4,11 +4,16 @@ Module:
 Author: Unic-Lab <https://unic-lab.ru/>
 ************************************************************************************/
 
-#ifndef _CLOCK_SYSTEM_H_
-#define _CLOCK_SYSTEM_H_
+#ifndef _ADC_H_
+#define _ADC_H_
 
 //===================================================================================
 
-void clock_system_init(void);
+#include <stdint.h>
 
-#endif // _CLOCK_SYSTEM_H_
+//===================================================================================
+
+void adc_ext_volt_init(uint32_t* p_buf, uint16_t buf_size);
+void adc_ext_volt_deinit(void);
+
+#endif // _ADC_H_

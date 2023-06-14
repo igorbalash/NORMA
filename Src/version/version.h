@@ -61,10 +61,13 @@ Author: Unic-Lab <https://unic-lab.ru/>
 
 /**
 	Таблица соответствия (PLAT_SCHEME_VERSION_MAJOR.PLAT_SCHEME_VERSION_MINOR - PLAT_SCHEME_VARIANT) и PRODUCT_HARD
-	( 0.0 - 0 ) - 1 - Опытные образцы для NORMA
+	( 0.0 - 0 ) - 1 - Фрезированный прототип
+	( 1.0 - 0 ) - 2 - Опытные образцы для NORMA
 */
 #if (PLAT_SCHEME_VERSION_MAJOR == 0) && (PLAT_SCHEME_VERSION_MINOR == 0) && (PLAT_SCHEME_VARIANT == 0)
 	#include "hard_1.h"
+#elif (PLAT_SCHEME_VERSION_MAJOR == 1) && (PLAT_SCHEME_VERSION_MINOR == 0) && (PLAT_SCHEME_VARIANT == 0)
+	#include "hard_2.h"
 #else
 	#error "UNSUPPORTED HARDWARE!"
 #endif

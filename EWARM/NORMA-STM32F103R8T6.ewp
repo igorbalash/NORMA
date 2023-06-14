@@ -363,6 +363,8 @@
                     <state>$PROJ_DIR$\..\Src\leds</state>
                     <state>$PROJ_DIR$\..\Src</state>
                     <state>$PROJ_DIR$\..\Src\reset</state>
+                    <state>$PROJ_DIR$\..\Src\ext_volt</state>
+                    <state>$PROJ_DIR$\..\Src\drivers</state>
                 </option>
                 <option>
                     <name>CCStdIncCheck</name>
@@ -1085,6 +1087,24 @@
                 </file>
             </group>
             <group>
+                <name>drivers</name>
+                <file>
+                    <name>$PROJ_DIR$\..\Src\drivers\adc.c</name>
+                </file>
+                <file>
+                    <name>$PROJ_DIR$\..\Src\drivers\adc.h</name>
+                </file>
+            </group>
+            <group>
+                <name>ext_volt</name>
+                <file>
+                    <name>$PROJ_DIR$\..\Src\ext_volt\ext_volt.c</name>
+                </file>
+                <file>
+                    <name>$PROJ_DIR$\..\Src\ext_volt\ext_volt.h</name>
+                </file>
+            </group>
+            <group>
                 <name>leds</name>
                 <file>
                     <name>$PROJ_DIR$\..\Src\leds\leds.c</name>
@@ -1111,6 +1131,9 @@
                     <name>$PROJ_DIR$\..\Src\version\hard_1.h</name>
                 </file>
                 <file>
+                    <name>$PROJ_DIR$\..\Src\version\hard_2.h</name>
+                </file>
+                <file>
                     <name>$PROJ_DIR$\..\Src\version\plat.h</name>
                 </file>
                 <file>
@@ -1130,12 +1153,6 @@
         <group>
             <name>User</name>
             <file>
-                <name>$PROJ_DIR$\..\Src\adc.c</name>
-            </file>
-            <file>
-                <name>$PROJ_DIR$\..\Src\dma.c</name>
-            </file>
-            <file>
                 <name>$PROJ_DIR$\..\Src\gpio.c</name>
             </file>
             <file>
@@ -1146,9 +1163,6 @@
             </file>
             <file>
                 <name>$PROJ_DIR$\..\Src\stm32f1xx_it.c</name>
-            </file>
-            <file>
-                <name>$PROJ_DIR$\..\Src\tim.c</name>
             </file>
             <file>
                 <name>$PROJ_DIR$\..\Src\usart.c</name>

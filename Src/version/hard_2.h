@@ -4,12 +4,12 @@ Module: Модуль предназначен для задания дефайн
 Author: Unic-Lab <https://unic-lab.ru/>
 ************************************************************************************/
 
-#ifndef _HARD_1_H_
-#define _HARD_1_H_
+#ifndef _HARD_2_H_
+#define _HARD_2_H_
 
 //===================================================================================
 
-#define PRODUCT_HARD	1
+#define PRODUCT_HARD	2
 
 //===================================================================================
 
@@ -165,11 +165,11 @@ Author: Unic-Lab <https://unic-lab.ru/>
 #define MAIN_VOLT_ADC_CH							ADC_CHANNEL_0
 
 #define RESERVE_VOLT_PORT							GPIOA
-#define RESERVE_VOLT_PIN							GPIO_PIN_7
-#define RESERVE_VOLT_ADC_CH							ADC_CHANNEL_7
+#define RESERVE_VOLT_PIN							GPIO_PIN_3
+#define RESERVE_VOLT_ADC_CH							ADC_CHANNEL_3
 
-#define EXT_VOLT_DIV_RES_UP_OHM						33000.0f
-#define EXT_VOLT_DIV_RES_DOWN_OHM					4300.0f
+#define EXT_VOLT_DIV_RES_UP_OHM						47000.0f
+#define EXT_VOLT_DIV_RES_DOWN_OHM					4700.0f
 
 //===================================================================================
 
@@ -187,8 +187,8 @@ Author: Unic-Lab <https://unic-lab.ru/>
 #define SIDE_1_CURRENT_SENSE_PULL					GPIO_NOPULL
 
 #define CURRENT_SENSE_DIV_RES_UP_OHM				10000.0f
-#define CURRENT_SENSE_DIV_RES_DOWN_OHM				6800.0f
+#define CURRENT_SENSE_DIV_RES_DOWN_OHM				4700.0f
 
 //===================================================================================
 
-#endif // _HARD_1_H_
+#endif // _HARD_2_H_

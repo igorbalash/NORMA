@@ -1,4 +1,5 @@
 #include "app_config.h"
+#include "version.h"
 #include "stm32f1xx_hal.h"
 #include "clock_system.h"
 #include "main_tasks.h"
@@ -8,9 +9,6 @@
 //===================================================================================
 
 #include "cmsis_os.h"
-#include "adc.h"
-#include "dma.h"
-#include "tim.h"
 #include "usart.h"
 #include "gpio.h"
 
@@ -26,16 +24,15 @@ int main(void)
 
 	// Инициализация IWDG
 	reset_iwdg_init();
-
 	// Инициализация модулей
 	leds_init();
 
 	/* Initialize all configured peripherals */
 	MX_GPIO_Init();
-	MX_DMA_Init();
-	MX_ADC1_Init();
+
+#ifdef ON_DEBUG_MESSAGE
 	MX_USART1_UART_Init();
-	MX_TIM3_Init();
+#endif
 
 	// Инициализация задач FreeRTOS
 	main_tasks_initTasks();
