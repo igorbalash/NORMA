@@ -37,6 +37,9 @@ int main(void)
 	// Инициализация задач FreeRTOS
 	main_tasks_initTasks();
 
+	// Инициализация mutex FreeRTOS
+	main_tasks_initOsMutex();
+
 	// Запуск планировщика
 	osKernelStart();
 

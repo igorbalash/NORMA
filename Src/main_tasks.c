@@ -29,10 +29,21 @@ Author: Unic-Lab <https://unic-lab.ru/>
 // Временно
 //===================================================================================
 
+#define CHECK_EXT_VOLTAGE_PERIOD_MS				15000
+#define MOTOR_MOVING_INDICATION_PERIOD_MS		1000
+
+//===================================================================================
+
 typedef enum {
-	ONCE = 0,
-	PERIODICALLY
-} RepetitionPeriod_t;
+	READY = 0,
+	RUNNING
+} ProcessState_t;
+
+typedef enum {
+	PULL_DOWN_POS = 0,
+	PULL_UP_POS,
+	MOVING_POS
+} MotorPosition_t;
 
 typedef enum {
 	NO_ERROR = 0,
@@ -42,9 +53,10 @@ typedef enum {
 	SIDE_MOTOR_TIMEOUT_ERROR
 } ErrorsType_t;
 
-static void check_ext_voltage_loop(RepetitionPeriod_t freq);
-static void check_device_errors(void);
+static void check_ext_voltage_loop(void);
+static ErrorsType_t check_device_errors(void);
 static void error_indication_loop(ErrorsType_t error_type);
+static void motor_state_indication_loop(void);
 
 //===================================================================================
 
@@ -59,6 +71,11 @@ typedef struct {
 	bool error_DownMotorTimeoutError;
 	bool error_SideMotorTimeoutError;
 } globalErrors_t;
+
+typedef struct {
+	MotorPosition_t state_UpDownMotor;
+	MotorPosition_t state_SideMotor;
+} MotorState_t;
 
 //===================================================================================
 
@@ -76,10 +93,19 @@ globalErrors_t globalErrors = {
 	.error_SideMotorTimeoutError = false
 };
 
+// структура глобальных состояний моторов
+MotorState_t motorState = {
+	.state_UpDownMotor = PULL_DOWN_POS,
+	.state_SideMotor = PULL_DOWN_POS
+};
+
 //===================================================================================
 
 // Заголовки задач
 osThreadId superloop_TaskHandle;
+
+// Заголовки мьютексов
+osMutexId adcUse_MutexHandle;
 
 //===================================================================================
 
@@ -95,30 +121,36 @@ void main_tasks_initTasks(void)
 	superloop_TaskHandle = osThreadCreate(osThread(t_superloop), NULL);
 }
 
+// Инициализация mutex
+void main_tasks_initOsMutex(void)
+{
+	osMutexDef(m_adcUse	);																								// создание mutex для управления доступом к ADC
+	adcUse_MutexHandle = osMutexCreate(osMutex(m_adcUse));
+}
+
 //===================================================================================
 
 // Задачи
 void taskFunc_superloop(void const* argument)
 {
-
-	// Измеряем напряжение основного и резервного источников
-	check_ext_voltage_loop(ONCE);
+	// Индикация появившегося питания
+	leds_ledOn(GREEN);
 
 	// Чтение из Flash текущего состояния актуаторов
 
-
-
-	// Если подключено 2 источника - выдаем ошибку
-
-	// Если подключе резервный ичтоник - меняем полярность управления общим реле по питаню
-
 	while(1)
 	{
-		// Проверка внешних напряжений
-		check_ext_voltage_loop(ONCE);
+		// Цикл проверки внешних напряжений
+		check_ext_voltage_loop();
 
-		// Проверка ошибок
-		check_device_errors();
+		// Проверка наличия ошибок
+		ErrorsType_t error_type = check_device_errors();
+
+		// Цикл индикации ошибки
+		error_indication_loop(error_type);
+
+		// Цикл индикации состояния моторов
+		motor_state_indication_loop();
 
 		if (true == globalErrors.error_ExtPowerError) {
 			HAL_UART_Transmit(&huart1, "Voltage Error", 13, 500);
@@ -140,7 +172,7 @@ void taskFunc_superloop(void const* argument)
 
 //===================================================================================
 
-static void check_device_errors(void)
+static ErrorsType_t check_device_errors(void)
 {
 	ErrorsType_t error_type;
 
@@ -169,8 +201,35 @@ static void check_device_errors(void)
 		error_type = NO_ERROR;
 	}
 
-	// Индикация ошибки
-	error_indication_loop(error_type);
+	return error_type;
+}
+
+static void motor_state_indication_loop(void)
+{
+	MotorPosition_t motor_pos = PULL_DOWN_POS;
+	static uint32_t prev_time_ms = 0;
+
+	uint32_t curr_time_ms = HAL_GetTick();
+
+	if (motorState.state_UpDownMotor == MOVING_POS || motorState.state_SideMotor == MOVING_POS ) {
+		motor_pos = MOVING_POS;
+	}
+
+	switch (motor_pos)
+	{
+		case PULL_DOWN_POS:
+		case PULL_UP_POS:
+			leds_ledOn(GREEN);
+			break;
+		case MOVING_POS:
+			if (curr_time_ms - prev_time_ms > MOTOR_MOVING_INDICATION_PERIOD_MS) {
+				prev_time_ms = curr_time_ms;
+				leds_ledToggle(GREEN);
+			}
+			break;
+		default:
+			break;
+	}
 }
 
 static void error_indication_loop(ErrorsType_t error_type)
@@ -216,62 +275,76 @@ static void error_indication_loop(ErrorsType_t error_type)
 	}
 }
 
-static void check_ext_voltage_loop(RepetitionPeriod_t period)
+static void check_ext_voltage_loop(void)
 {
-	float main_volt = 0;
-	float reserve_volt = 0;
+	static ProcessState_t loop_state = READY;
+	static uint32_t prev_time_ms = 0U - CHECK_EXT_VOLTAGE_PERIOD_MS;
 
-	switch (period)
+	uint32_t curr_time_ms = HAL_GetTick();
+
+	switch (loop_state)
 	{
-		case ONCE:
-			// Запускаем измерение
-			ext_volt_start_measure();
+		case READY:
+			if (curr_time_ms - prev_time_ms > CHECK_EXT_VOLTAGE_PERIOD_MS) {
+				prev_time_ms = curr_time_ms;
 
-			// Ожидаем флаг окончания
-			while (globalFlags.flag_isAdcСonvReady != true);
-			// Сбрасываем флаг
-			globalFlags.flag_isAdcСonvReady = false;
-			// Останавливаем измерение
-			ext_volt_stop_measure();
+				// Защищаем доступ к ADC с помощью mutex
+				osStatus ret_stat = osMutexWait(adcUse_MutexHandle, 0);
 
-			// Запускаем обработку данных
-			ext_volt_process_adc_data();
-			main_volt = ext_volt_get_main_volt();
-			reserve_volt = ext_volt_get_reserve_volt();
-
-			#ifdef ON_DEBUG_MESSAGE
-				snprintf(debug_buf, sizeof(debug_buf), "Voltage: main = %.2f, reverse = %.2f\r\n", main_volt, reserve_volt);
-				HAL_UART_Transmit(&huart1, (uint8_t*)debug_buf, strlen(debug_buf), 500);
-			#endif
-
-			if (main_volt != 0) {
-				// Реверс полярности управления главным питанием моторов НЕ НУЖЕН
-				globalFlags.flag_isNeedRevPolMainMotorPwr = false;
-
-				if ( (main_volt < MIN_EXT_VOLTAGE_V) || (main_volt > MAX_EXT_VOLTAGE_V) ) {
-					// Устанавливаем ошибку внешнего питания
-					globalErrors.error_ExtPowerError = true;
-					break;
+				// Если доступ получен - выполняем цикл
+				if (ret_stat == osOK) {
+					loop_state = RUNNING;
+					// Запускаем измерение
+					ext_volt_start_measure();
 				}
-			} else {
-				// Реверс полярности управления главным питанием моторов НУЖЕН
-				globalFlags.flag_isNeedRevPolMainMotorPwr = true;
+
 			}
-
-			if (reserve_volt != 0 ) {
-				if ( (reserve_volt < MIN_EXT_VOLTAGE_V) || (reserve_volt > MAX_EXT_VOLTAGE_V) ) {
-					// Устанавливаем ошибку внешнего питания
-					globalErrors.error_ExtPowerError = true;
-					break;
-				}
-			}
-
-			// Сбрасываем ошибку внешнего питания
-			globalErrors.error_ExtPowerError = false;
-
 			break;
-		case PERIODICALLY:
+		case RUNNING:
+			if (true == globalFlags.flag_isAdcСonvReady) {
+				// Останавливаем измерение
+				ext_volt_stop_measure();
+				// Сбрасываем флаг
+				globalFlags.flag_isAdcСonvReady = false;
+				// Запускаем обработку данных
+				ext_volt_process_adc_data();
 
+				float main_volt = ext_volt_get_main_volt();
+				float reserve_volt = ext_volt_get_reserve_volt();
+
+				#ifdef ON_DEBUG_MESSAGE
+					snprintf(debug_buf, sizeof(debug_buf), "Voltage: main = %.2f, reverse = %.2f\r\n", main_volt, reserve_volt);
+					HAL_UART_Transmit(&huart1, (uint8_t*)debug_buf, strlen(debug_buf), 500);
+				#endif
+
+				// Предварительно сбрасываем ошибку внешнего питания
+				globalErrors.error_ExtPowerError = false;
+
+				if (main_volt != 0) {
+					// Реверс полярности управления главным питанием моторов НЕ НУЖЕН
+					globalFlags.flag_isNeedRevPolMainMotorPwr = false;
+
+					if ( (main_volt < MIN_EXT_VOLTAGE_V) || (main_volt > MAX_EXT_VOLTAGE_V) ) {
+						// Устанавливаем ошибку внешнего питания
+						globalErrors.error_ExtPowerError = true;
+					}
+				} else {
+					// Реверс полярности управления главным питанием моторов НУЖЕН
+					globalFlags.flag_isNeedRevPolMainMotorPwr = true;
+				}
+
+				if (reserve_volt != 0 ) {
+					if ( (reserve_volt < MIN_EXT_VOLTAGE_V) || (reserve_volt > MAX_EXT_VOLTAGE_V) ) {
+						// Устанавливаем ошибку внешнего питания
+						globalErrors.error_ExtPowerError = true;
+					}
+				}
+
+				loop_state = READY;
+
+				// Освобождаем доступ к ADC, возвращая mutex
+				osMutexRelease(adcUse_MutexHandle);
+			}
 			break;
 		default:
 			break;
