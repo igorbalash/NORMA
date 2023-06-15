@@ -1233,6 +1233,21 @@
                 </file>
             </group>
             <group>
+                <name>panel</name>
+                <file>
+                    <name>$PROJ_DIR$\..\Src\panel\nearby_panel.c</name>
+                </file>
+                <file>
+                    <name>$PROJ_DIR$\..\Src\panel\nearby_panel.h</name>
+                </file>
+                <file>
+                    <name>$PROJ_DIR$\..\Src\panel\panel_type.c</name>
+                </file>
+                <file>
+                    <name>$PROJ_DIR$\..\Src\panel\panel_type.h</name>
+                </file>
+            </group>
+            <group>
                 <name>reset</name>
                 <file>
                     <name>$PROJ_DIR$\..\Src\reset\reset.c</name>

@@ -5,6 +5,8 @@
 #include "main_tasks.h"
 #include "reset.h"
 #include "leds.h"
+#include "panel_type.h"
+#include "nearby_panel.h"
 
 //===================================================================================
 
@@ -24,8 +26,12 @@ int main(void)
 
 	// Инициализация IWDG
 	reset_iwdg_init();
+
 	// Инициализация модулей
 	leds_init();
+	panel_type_init();
+	nearby_panel_init();
+
 
 	/* Initialize all configured peripherals */
 	MX_GPIO_Init();

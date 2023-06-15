@@ -57,13 +57,13 @@ Author: Unic-Lab <https://unic-lab.ru/>
 // defines для модуля input_signal.h
 #define INPUT_SIGNAL_GPIO_CLK_ENABLE()				{ __HAL_RCC_GPIOB_CLK_ENABLE(); }
 
+#define INPUT_SIGNAL_ACTIVE_STATE					GPIO_PIN_RESET
 #define INPUT_SIGNAL_PORT							GPIOB
 #define INPUT_SIGNAL_PIN							GPIO_PIN_0
+#define INPUT_SIGNAL_PIN_INDEX						0
 #define INPUT_SIGNAL_PULL							GPIO_NOPULL
-#define INPUT_SIGNAL_MODE							GPIO_MODE_IT_FALLING
-#define INPUT_SIGNAL_EXTI_IRQN						EXTI0_IRQn
-
-#define EXTI6_IRQ_HANDLER_PROCESSING()				{ HAL_GPIO_EXTI_IRQHandler(INPUT_SIGNAL_PIN); }
+#define INPUT_SIGNAL_MODE							GPIO_MODE_INPUT
+#define INPUT_SIGNAL_PORT_INPUT_ADDR				(&(INPUT_SIGNAL_PORT->IDR))
 
 //===================================================================================
 
