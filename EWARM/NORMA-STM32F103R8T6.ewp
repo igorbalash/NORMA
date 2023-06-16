@@ -366,6 +366,8 @@
                     <state>$PROJ_DIR$\..\Src\ext_volt</state>
                     <state>$PROJ_DIR$\..\Src\drivers</state>
                     <state>$PROJ_DIR$\..\Src\panel</state>
+                    <state>$PROJ_DIR$\..\Src\current_sense</state>
+                    <state>$PROJ_DIR$\..\Src\actuators</state>
                 </option>
                 <option>
                     <name>CCStdIncCheck</name>
@@ -1079,12 +1081,30 @@
         <group>
             <name>Src</name>
             <group>
+                <name>actuators</name>
+                <file>
+                    <name>$PROJ_DIR$\..\Src\actuators\actuators.c</name>
+                </file>
+                <file>
+                    <name>$PROJ_DIR$\..\Src\actuators\actuators.h</name>
+                </file>
+            </group>
+            <group>
                 <name>core</name>
                 <file>
                     <name>$PROJ_DIR$\..\Src\core\clock_system.c</name>
                 </file>
                 <file>
                     <name>$PROJ_DIR$\..\Src\core\clock_system.h</name>
+                </file>
+            </group>
+            <group>
+                <name>current_sense</name>
+                <file>
+                    <name>$PROJ_DIR$\..\Src\current_sense\current_sense.c</name>
+                </file>
+                <file>
+                    <name>$PROJ_DIR$\..\Src\current_sense\current_sense.h</name>
                 </file>
             </group>
             <group>

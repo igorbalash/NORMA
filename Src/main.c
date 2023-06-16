@@ -7,6 +7,7 @@
 #include "leds.h"
 #include "panel_type.h"
 #include "nearby_panel.h"
+#include "actuators.h"
 
 //===================================================================================
 
@@ -28,23 +29,33 @@ int main(void)
 	reset_iwdg_init();
 
 	// Инициализация модулей
+	actuators_init();
 	leds_init();
 	panel_type_init();
 	nearby_panel_init();
 
-
 	/* Initialize all configured peripherals */
-	MX_GPIO_Init();
+//	MX_GPIO_Init();
 
 #ifdef ON_DEBUG_MESSAGE
 	MX_USART1_UART_Init();
 #endif
+
+//	// Включаем общее питание
+//	actuators_main_power_on(0);
+//	// Подаем питание на актуатор UP
+//	actuators_start_move_down(UP_ACTUATOR);
+//	actuators_start_move_down(DOWN_ACTUATOR);
+//	while(1);
 
 	// Инициализация задач FreeRTOS
 	main_tasks_initTasks();
 
 	// Инициализация mutex FreeRTOS
 	main_tasks_initOsMutex();
+
+	// Инициализация таймеров FreeRTOS
+	main_tasks_initOsTimer();
 
 	// Запуск планировщика
 	osKernelStart();

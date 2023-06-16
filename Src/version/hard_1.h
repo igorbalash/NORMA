@@ -178,20 +178,28 @@ Author: Unic-Lab <https://unic-lab.ru/>
 //===================================================================================
 
 // defines для модуля current_sense.h
+#define CURRENT_SENSE_DET_GPIO_CLK_ENABLE()			{ __HAL_RCC_GPIOA_CLK_ENABLE(); }
+
 #define UP_CURRENT_SENSE_PORT						GPIOA
 #define UP_CURRENT_SENSE_PIN						GPIO_PIN_1
-#define UP_CURRENT_SENSE_PULL						GPIO_NOPULL
+#define UP_CURRENT_ADC_CH							ADC_CHANNEL_1
 
 #define DOWN_CURRENT_SENSE_PORT						GPIOA
 #define DOWN_CURRENT_SENSE_PIN						GPIO_PIN_2
-#define DOWN_CURRENT_SENSE_PULL						GPIO_NOPULL
+#define DOWN_CURRENT_ADC_CH							ADC_CHANNEL_2
 
 #define SIDE_1_CURRENT_SENSE_PORT					GPIOA
 #define SIDE_1_CURRENT_SENSE_PIN					GPIO_PIN_4
-#define SIDE_1_CURRENT_SENSE_PULL					GPIO_NOPULL
+#define SIDE_1_CURRENT_ADC_CH						ADC_CHANNEL_4
 
 #define CURRENT_SENSE_DIV_RES_UP_OHM				10000.0f
 #define CURRENT_SENSE_DIV_RES_DOWN_OHM				6800.0f
+#define CURRENT_SENSE_RES_OHM						910.0f
+
+#define CURRENT_SENSE_RES_OHM						910.0f
+
+// Для VND5050AK-E при Iout = 2A
+#define IN_OUT_CURRENT_RATIO						2020.0f
 
 //===================================================================================
 

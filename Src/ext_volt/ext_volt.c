@@ -27,6 +27,7 @@ Author: Unic-Lab <https://unic-lab.ru/>
 
 uint16_t ext_volt_adc_data[(EXT_VOLT_CNT + REF_INT_VOLT_CNT) * VOLT_DATA_SAMPLE_SIZE] = {0}; 							// по VOLT_DATA_SAMPLE_SIZE элементов в выборке для каждого канала напряжения
 
+// В Вольтах
 float main_volt = 0;
 float reserve_volt = 0;
 
@@ -50,7 +51,7 @@ void ext_volt_process_adc_data(void)
 	float tmp_reserve_volt = 0;
 	float ref_int_volt = 0;
 
-	for (uint16_t i = 0; i < VOLT_DATA_SAMPLE_SIZE; i += 3) {
+	for (uint16_t i = 0; i < EXT_VOLT_ADC_DATA_SIZE; i += 3) {
 		tmp_main_volt += ext_volt_adc_data[i];
 		tmp_reserve_volt += ext_volt_adc_data[i + 1];
 		ref_int_volt += ext_volt_adc_data[i + 2];
