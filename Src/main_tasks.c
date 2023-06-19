@@ -35,6 +35,7 @@ Author: Unic-Lab <https://unic-lab.ru/>
 
 #define CHECK_EXT_VOLTAGE_PERIOD_MS				10000
 #define MOTOR_MOVING_INDICATION_PERIOD_MS		500
+#define CURRENT_DETECT_DELAY_MS					300
 
 //===================================================================================
 
@@ -54,7 +55,10 @@ typedef enum {
 	EXT_POWER_ERROR,
 	UP_MOTOR_TIMEOUT_ERROR,
 	DOWN_MOTOR_TIMEOUT_ERROR,
-	SIDE_MOTOR_TIMEOUT_ERROR
+	SIDE_MOTOR_TIMEOUT_ERROR,
+	UP_MOTOR_NULL_CURRENT_ERROR,
+	DOWN_MOTOR_NULL_CURRENT_ERROR,
+	SIDE_MOTOR_NULL_CURRENT_ERROR
 } ErrorsType_t;
 
 static void check_ext_voltage_loop(void);
@@ -84,6 +88,9 @@ typedef struct {
 	bool error_UpMotorTimeoutError;
 	bool error_DownMotorTimeoutError;
 	bool error_SideMotorTimeoutError;
+	bool error_UpMotorNullCurentError;
+	bool error_DownMotorNullCurentError;
+	bool error_SideMotorNullCurentError;
 } globalErrors_t;
 
 typedef struct {
@@ -116,7 +123,10 @@ globalErrors_t globalErrors = {
 	.error_ExtPowerError = false,
 	.error_UpMotorTimeoutError = false,
 	.error_DownMotorTimeoutError = false,
-	.error_SideMotorTimeoutError = false
+	.error_SideMotorTimeoutError = false,
+	.error_UpMotorNullCurentError = false,
+	.error_DownMotorNullCurentError = false,
+	.error_SideMotorNullCurentError = false
 };
 
 // структура глобальных состояний моторов
@@ -220,19 +230,6 @@ void taskFunc_superloop(void const* argument)
 		// Цикл индикации ошибки
 		error_indication_loop(error_type);
 
-
-
-//		if (true == globalErrors.error_ExtPowerError) {
-//			HAL_UART_Transmit(&huart1, "Voltage Error", 13, 500);
-//		}
-
-//		leds_ledOn(GREEN);
-//		leds_ledOff(RED);
-//		osDelay(500);
-//		leds_ledOff(GREEN);
-//		leds_ledOn(RED);
-//		osDelay(500);
-
 		// Цикл проверки подключенности соседней панели (актуально только для обычной панели)
 		if (COMMON == globalVars.gvar_panel_type) {
 			check_nearby_panel_loop();
@@ -275,6 +272,7 @@ static void timer_control_loop(void)
 		globalErrors.error_UpMotorTimeoutError = false;
 		osTimerStart(upMotor_TimerHandle, MOTOR_TIMEOUT_MS);
 	} else if ((MOVING_POS != motorState.state_UpMotor) && (prev_state_UpMotor != motorState.state_UpMotor)) {
+		prev_state_UpMotor = motorState.state_UpMotor;
 		// Останавливаем таймер
 		osTimerStop(upMotor_TimerHandle);
 	}
@@ -286,6 +284,7 @@ static void timer_control_loop(void)
 		globalErrors.error_DownMotorTimeoutError = false;
 		osTimerStart(downMotor_TimerHandle, MOTOR_TIMEOUT_MS);
 	} else if ((MOVING_POS != motorState.state_DownMotor) && (prev_state_DownMotor != motorState.state_DownMotor)) {
+		prev_state_DownMotor = motorState.state_DownMotor;
 		// Останавливаем таймер
 		osTimerStop(downMotor_TimerHandle);
 	}
@@ -297,6 +296,7 @@ static void timer_control_loop(void)
 		globalErrors.error_SideMotorTimeoutError = false;
 		osTimerStart(sideMotor_TimerHandle, MOTOR_TIMEOUT_MS);
 	} else if ((MOVING_POS != motorState.state_SideMotor) && (prev_state_SideMotor != motorState.state_SideMotor)) {
+		prev_state_SideMotor = motorState.state_SideMotor;
 		// Останавливаем таймер
 		osTimerStop(sideMotor_TimerHandle);
 	}
@@ -304,48 +304,126 @@ static void timer_control_loop(void)
 
 static void current_sense_res_loop(void)
 {
+	static uint32_t prev_time_upMotor_ms = 0;
+	static uint32_t prev_time_downMotor_ms = 0;
+	static uint32_t prev_time_sideMotor_ms = 0;
+
+	static MotorPosition_t prev_state_UpMotor = PULL_DOWN_POS;
+	static MotorPosition_t prev_state_DownMotor = PULL_DOWN_POS;
+	static MotorPosition_t prev_state_SideMotor = PULL_DOWN_POS;
+
+	uint32_t curr_time_ms = HAL_GetTick();
+
+	// Если актуатор движется запускаем задержку перед сэмплированием
+	if ((MOVING_POS == motorState.state_UpMotor) && (prev_state_UpMotor != motorState.state_UpMotor)) {
+		prev_state_UpMotor = motorState.state_UpMotor;
+		prev_time_upMotor_ms = curr_time_ms;
+		globalErrors.error_UpMotorNullCurentError = false;
+	} else if ((MOVING_POS != motorState.state_UpMotor) && (prev_state_UpMotor != motorState.state_UpMotor)) {
+		prev_state_UpMotor = motorState.state_UpMotor;
+	}
+
+	if ((MOVING_POS == motorState.state_DownMotor) && (prev_state_DownMotor != motorState.state_DownMotor)) {
+		prev_state_DownMotor = motorState.state_DownMotor;
+		prev_time_downMotor_ms = curr_time_ms;
+		globalErrors.error_DownMotorNullCurentError = false;
+	} else if ((MOVING_POS != motorState.state_DownMotor) && (prev_state_DownMotor != motorState.state_DownMotor)) {
+		prev_state_DownMotor = motorState.state_DownMotor;
+	}
+
+	if ((MOVING_POS == motorState.state_SideMotor) && (prev_state_SideMotor != motorState.state_SideMotor)) {
+		prev_state_SideMotor = motorState.state_SideMotor;
+		prev_time_sideMotor_ms = curr_time_ms;
+		globalErrors.error_SideMotorNullCurentError = false;
+	} else if ((MOVING_POS != motorState.state_SideMotor) && (prev_state_SideMotor != motorState.state_SideMotor)) {
+		prev_state_SideMotor = motorState.state_SideMotor;
+	}
+
 	// Если актуаторы в движении обрабатываем данные с current sense resistors
 	if ((MOVING_POS == motorState.state_UpMotor) || (MOVING_POS == motorState.state_DownMotor) || (MOVING_POS == motorState.state_SideMotor)) {
 		// Сработало прерывание ADC
 		if (true == globalFlags.flag_isAdcСonvReady) {
 			globalFlags.flag_isAdcСonvReady = false;
+
 			// Запускаем обработку данных
 			current_sense_process_adc_data();
 
+			// Верхний актуатор
 			if (MOVING_POS == motorState.state_UpMotor) {
-				float up_current_amp = current_sense_get_up_current();
-				if ((up_current_amp >= UP_MOTOR_CURR_THRESH_MA) || (0 == up_current_amp)) {
-					globalFlags.flag_isNeedStopUpMotor = true;
+				if (curr_time_ms - prev_time_upMotor_ms >= CURRENT_DETECT_DELAY_MS) {
+					float up_current_amp = current_sense_get_up_current();
+
+				#ifdef ON_DEBUG_MESSAGE
+					snprintf(debug_buf, sizeof(debug_buf), "Motor UP current: %.2f\r\n", up_current_amp);
+					HAL_UART_Transmit(&huart1, (uint8_t*)debug_buf, strlen(debug_buf), 500);
+				#endif
+
+					if ((up_current_amp >= UP_MOTOR_CURR_THRESH_A) || (0 == up_current_amp)) {
+						globalFlags.flag_isNeedStopUpMotor = true;
+						if (0 == up_current_amp) {
+							// Устанавливаем флаг ошибки
+							globalErrors.error_UpMotorNullCurentError = true;
+						}
+					}
 				}
 			}
 
+			// Нижний актуатор
 			if (MOVING_POS == motorState.state_DownMotor) {
-				float down_current_amp = current_sense_get_down_current();
-				if ((down_current_amp >= DOWN_MOTOR_CURR_THRESH_MA) || (0 == down_current_amp)) {
-					globalFlags.flag_isNeedStopDownMotor = true;
+				if (curr_time_ms - prev_time_downMotor_ms >= CURRENT_DETECT_DELAY_MS) {
+					float down_current_amp = current_sense_get_down_current();
+
+				#ifdef ON_DEBUG_MESSAGE
+					snprintf(debug_buf, sizeof(debug_buf), "Motor Down current: %.2f\r\n", down_current_amp);
+					HAL_UART_Transmit(&huart1, (uint8_t*)debug_buf, strlen(debug_buf), 500);
+				#endif
+
+					if ((down_current_amp >= DOWN_MOTOR_CURR_THRESH_A) || (0 == down_current_amp)) {
+						globalFlags.flag_isNeedStopDownMotor = true;
+						if (0 == down_current_amp) {
+							// Устанавливаем флаг ошибки
+							globalErrors.error_DownMotorNullCurentError = true;
+						}
+					}
 				}
 			}
 
-			if (MOVING_POS == motorState.state_SideMotor) {
-				float side_current_amp = current_sense_get_side_current();
-				if ((side_current_amp >= DOWN_MOTOR_CURR_THRESH_MA) || (0 == side_current_amp)) {
-					globalFlags.flag_isNeedStopSideMotor = true;
+			// Боковые актуаторы если панель не общая
+			if (COMMON != globalVars.gvar_panel_type) {
+				if (MOVING_POS == motorState.state_SideMotor) {
+					if (curr_time_ms - prev_time_sideMotor_ms >= CURRENT_DETECT_DELAY_MS) {
+						float side_current_amp = current_sense_get_side_current();
+
+					#ifdef ON_DEBUG_MESSAGE
+						snprintf(debug_buf, sizeof(debug_buf), "Motor Side current: %.2f\r\n", side_current_amp);
+						HAL_UART_Transmit(&huart1, (uint8_t*)debug_buf, strlen(debug_buf), 500);
+					#endif
+
+						// Определение порога по току в зависимости от кол-ва боковых актуаторов
+						float current_thr_a = globalVars.gvar_panel_type * (2 * SIDE_MOTOR_CURR_THRESH_A);
+						if ((side_current_amp >= current_thr_a) || (0 == side_current_amp)) {
+							globalFlags.flag_isNeedStopSideMotor = true;
+							if (0 == side_current_amp) {
+								// Устанавливаем флаг ошибки
+								globalErrors.error_SideMotorNullCurentError = true;
+							}
+						}
+					}
 				}
 			}
 		}
-	} else {
-		// обнуляем выборки с обработанными данными
-
 	}
-
 }
 
 static void motor_control_loop(void)
 {
-	// Сделать проверку, чтобы не находиться в стадии долго, чтобы не зависнуть
+	// !!!! Сделать проверку, чтобы не находиться в стадии долго, чтобы не зависнуть
+
+	#define DEAFULT_STATE	0
 
 	static uint8_t loop_state = 0;
 	static uint32_t prev_time_ms = 0;
+	static bool flag_isDownMotorWasStarted = false;
 
 	uint32_t curr_time_ms = HAL_GetTick();
 
@@ -354,27 +432,31 @@ static void motor_control_loop(void)
 		globalFlags.flag_isNeedApplyForceMotor = false;
 		// Если актуаторы не в движении, запускаем процесс
 		if ((MOVING_POS != motorState.state_UpMotor) && (MOVING_POS != motorState.state_DownMotor) && (MOVING_POS != motorState.state_SideMotor)) {
-			loop_state = 10;
+			if ((PULL_UP_POS != motorState.state_UpMotor) || (PULL_UP_POS != motorState.state_DownMotor) || (PULL_UP_POS != motorState.state_SideMotor)) {
+				loop_state = 10;
+			}
 		}
 	// Необходимость задвинуть актуаторы
 	} else if (true == globalFlags.flag_isNeedRemoveForceMotor) {
 		globalFlags.flag_isNeedRemoveForceMotor = false;
-		// Если актуаторы не в движении, запускаем процесс
+		// Если актуатор не в движении и не внизу, запускаем процесс
 		if ((MOVING_POS != motorState.state_UpMotor) && (MOVING_POS != motorState.state_DownMotor) && (MOVING_POS != motorState.state_SideMotor)) {
-			loop_state = 20;
+			if ((PULL_DOWN_POS != motorState.state_UpMotor) || (PULL_DOWN_POS != motorState.state_DownMotor) || (PULL_DOWN_POS != motorState.state_SideMotor)) {
+				loop_state = 20;
+			}
 		}
 	// Необходимость немедленно остановить все актуаторы
 	} else if (true == globalFlags.flag_isNeedStopAllMotor) {
 		globalFlags.flag_isNeedStopAllMotor = false;
 		// Если актуаторы в движении, запускаем процесс
-		if ((MOVING_POS == motorState.state_UpMotor) || (MOVING_POS == motorState.state_DownMotor) || (MOVING_POS == motorState.state_SideMotor)) {
+		if ((MOVING_POS == motorState.state_UpMotor) || (MOVING_POS == motorState.state_DownMotor) || (MOVING_POS == motorState.state_SideMotor)) {			// возможно, при любом состоянии нужно запустить case
 			loop_state = 30;
 		}
 	}
 
 	switch (loop_state)
 	{
-		case 10:
+		case 10:																										// case 1X - процесс ВЫДВИЖЕНИЯ актуаторов
 		{
 			// Защищаем доступ к ADC с помощью mutex
 			osStatus ret_stat = osMutexWait(adcUse_MutexHandle, 0);
@@ -401,10 +483,12 @@ static void motor_control_loop(void)
 			break;
 		}
 		case 11:
-			// С задержкой в MOTOR_DOWN_MOV_DELAY_MS подаем питание на нижний актуатор
-			if (MOVING_POS != motorState.state_DownMotor) {
+			// С задержкой в MOTOR_DOWN_MOV_DELAY_MS подаем питание на нижний актуатор									// case 1X - процесс ВЫДВИЖЕНИЯ актуаторов
+			if (MOVING_POS != motorState.state_DownMotor && PULL_UP_POS != motorState.state_DownMotor) {
 				uint32_t curr_time_ms = HAL_GetTick();
 				if (curr_time_ms - prev_time_ms > MOTOR_DOWN_MOV_DELAY_MS) {
+					// Устанавливаем флаг
+					flag_isDownMotorWasStarted = true;
 					// Меняем состояние мотора DOWN
 					motorState.state_DownMotor = MOVING_POS;
 					// Подаем питание на актуатор DOWN
@@ -446,26 +530,31 @@ static void motor_control_loop(void)
 				#endif
 			}
 
-			// Если актуаторы не в движении, запускаем процесс видвижения боковой панели или отклбючаем общее питание
-			if ((MOVING_POS != motorState.state_UpMotor) && (MOVING_POS != motorState.state_DownMotor)) {
-				// Если панель телескопическая запускаем цикл управления боковой панелью
+			// Если актуаторы не в движении и нижний актуатор уже запускался, запускаем процесс видвижения боковой панели или отключаем общее питание
+			if ((MOVING_POS != motorState.state_UpMotor) && (MOVING_POS != motorState.state_DownMotor) && (true == flag_isDownMotorWasStarted)) {
+				// Сбрасываем флаг
+				flag_isDownMotorWasStarted = false;
+				// Если панель телескопическая - запускаем цикл управления боковой панелью
 				if (COMMON != globalVars.gvar_panel_type) {
 					// Меняем состояние мотора SIDE
 					motorState.state_SideMotor = MOVING_POS;
 					// Подаем питание на актуатор SIDE
 					actuators_start_move_up(SIDE_ACTUATOR);
+
+					#ifdef ON_DEBUG_MESSAGE
+						HAL_UART_Transmit(&huart1, "Move UP Motor_SIDE\r\n", strlen("Move UP Motor_SIDE\r\n"), 500);
+					#endif
+
 					// Меняем стадию
 					loop_state = 12;
 				} else {
-					// Выключаем общее питание
-					actuators_main_power_off(globalFlags.flag_isNeedRevPolMainMotorPwr);
-					// Останавливаем сэмплирование каналов current sense resistors
-					current_sense_stop_measure();
+					// Меняем стадию
+					loop_state = 40;
 				}
 			}
 			break;
 
-		case 12:
+		case 12:																										// case 1X - процесс ВЫДВИЖЕНИЯ актуаторов
 			// Нужно остановить мотор SIDE
 			if (true == globalFlags.flag_isNeedStopSideMotor) {
 				globalFlags.flag_isNeedStopSideMotor = false;
@@ -475,17 +564,141 @@ static void motor_control_loop(void)
 				motorState.state_SideMotor = PULL_UP_POS;
 				// Останавливаем актуатор
 				actuators_stop_move(SIDE_ACTUATOR);
-				// Выключаем общее питание
-				actuators_main_power_off(globalFlags.flag_isNeedRevPolMainMotorPwr);
-				// Останавливаем сэмплирование каналов current sense resistors
-				current_sense_stop_measure();
+
+				#ifdef ON_DEBUG_MESSAGE
+					HAL_UART_Transmit(&huart1, "Stop Motor_SIDE\r\n", strlen("Stop Motor_SIDE\r\n"), 500);
+				#endif
+
+				// Меняем стадию
+				loop_state = 40;
 			}
 			break;
-		case 20:
-			// Получаем доступ к АЦП
+		case 20:																										// case 2X - процесс ЗАДВИЖЕНИЯ актуаторов
+		{
+			// Защищаем доступ к ADC с помощью mutex
+			osStatus ret_stat = osMutexWait(adcUse_MutexHandle, 0);
 
+			// Если доступ получен - выполняем цикл
+			if (ret_stat == osOK) {
+				// Запускаем сэмплирование каналов current sense resistors
+				current_sense_start_measure();
+				// Включаем общее питание
+				actuators_main_power_on(globalFlags.flag_isNeedRevPolMainMotorPwr);
+
+				// Если панель телескопическая
+				if (COMMON != globalVars.gvar_panel_type) {
+					// Меняем состояние мотора SIDE
+					motorState.state_SideMotor = MOVING_POS;
+					// Подаем питание на актуатор SIDE
+					actuators_start_move_down(SIDE_ACTUATOR);
+
+					#ifdef ON_DEBUG_MESSAGE
+						HAL_UART_Transmit(&huart1, "Move DOWN Motor_SIDE\r\n", strlen("Move DOWN Motor_SIDE\r\n"), 500);
+					#endif
+				} else {
+					// Меняем стадию
+					loop_state = 21;
+				}
+			}
+
+			// Нужно остановить мотор SIDE
+			if (true == globalFlags.flag_isNeedStopSideMotor) {
+				globalFlags.flag_isNeedStopSideMotor = false;
+				// Останавливаем таймер
+				osTimerStop(sideMotor_TimerHandle);
+				// Меняем состояние мотора
+				motorState.state_SideMotor = PULL_DOWN_POS;
+				// Останавливаем актуатор
+				actuators_stop_move(SIDE_ACTUATOR);
+
+				// Т.к. остановка будет по концевику - сбрасываем ошибку
+				globalErrors.error_SideMotorNullCurentError = false;
+
+				#ifdef ON_DEBUG_MESSAGE
+					HAL_UART_Transmit(&huart1, "Stop Motor_SIDE\r\n", strlen("Stop Motor_SIDE\r\n"), 500);
+				#endif
+
+				// Меняем стадию
+				loop_state = 21;
+			}
+			break;
+		}
+		case 21:
+			if (MOVING_POS != motorState.state_UpMotor && PULL_DOWN_POS != motorState.state_UpMotor) {
+				// Меняем состояние мотора UP
+				motorState.state_UpMotor = MOVING_POS;
+				// Подаем питание на актуатор UP
+				actuators_start_move_down(UP_ACTUATOR);
+
+				#ifdef ON_DEBUG_MESSAGE
+					HAL_UART_Transmit(&huart1, "Move DOWN Motor_UP\r\n", strlen("Move DOWN Motor_UP\r\n"), 500);
+				#endif
+			}
+
+			if (MOVING_POS != motorState.state_DownMotor && PULL_DOWN_POS != motorState.state_DownMotor) {
+				// Меняем состояние мотора DOWN
+				motorState.state_DownMotor = MOVING_POS;
+				// Подаем питание на актуатор DOWN
+				actuators_start_move_down(DOWN_ACTUATOR);
+
+				#ifdef ON_DEBUG_MESSAGE
+					HAL_UART_Transmit(&huart1, "Move DOWN Motor_DOWN\r\n", strlen("Move DOWN Motor_DOWN\r\n"), 500);
+				#endif
+			}
+
+			// Нужно остановить мотор UP
+			if (true == globalFlags.flag_isNeedStopUpMotor) {
+				globalFlags.flag_isNeedStopUpMotor = false;
+				// Останавливаем таймер
+				osTimerStop(upMotor_TimerHandle);
+				// Меняем состояние мотора
+				motorState.state_UpMotor = PULL_DOWN_POS;
+				// Останавливаем актуатор
+				actuators_stop_move(UP_ACTUATOR);
+
+				// Т.к. остановка будет по концевику - сбрасываем ошибку
+				globalErrors.error_UpMotorNullCurentError = false;
+
+				#ifdef ON_DEBUG_MESSAGE
+					HAL_UART_Transmit(&huart1, "Stop Motor_UP\r\n", strlen("Stop Motor_UP\r\n"), 500);
+				#endif
+			}
+
+			// Нужно остановить мотор DOWN
+			if (true == globalFlags.flag_isNeedStopDownMotor) {
+				globalFlags.flag_isNeedStopDownMotor = false;
+				// Останавливаем таймер
+				osTimerStop(downMotor_TimerHandle);
+				// Меняем состояние мотора
+				motorState.state_DownMotor = PULL_DOWN_POS;
+				// Останавливаем актуатор
+				actuators_stop_move(DOWN_ACTUATOR);
+
+				// Т.к. остановка будет по концевику - сбрасываем ошибку
+				globalErrors.error_DownMotorNullCurentError = false;
+
+				#ifdef ON_DEBUG_MESSAGE
+					HAL_UART_Transmit(&huart1, "Stop Motor_DOWN\r\n", strlen("Stop Motor_DOWN\r\n"), 500);
+				#endif
+			}
+
+			// Если актуаторы не в движении - отключаем общее питание
+			if ((MOVING_POS != motorState.state_UpMotor) && (MOVING_POS != motorState.state_DownMotor)) {
+				// Меняем стадию
+				loop_state = 40;
+			}
 			break;
 		case 30:
+			break;
+		case 40:
+			// Выключаем общее питание
+			actuators_main_power_off(globalFlags.flag_isNeedRevPolMainMotorPwr);
+			// Останавливаем сэмплирование каналов current sense resistors
+			current_sense_stop_measure();
+			// Освобождаем доступ к ADC, возвращая mutex
+			osMutexRelease(adcUse_MutexHandle);
+			// Меняем стадию
+			loop_state = DEAFULT_STATE;
 			break;
 		default:
 			break;
@@ -585,6 +798,30 @@ static ErrorsType_t check_device_errors(void)
 				HAL_UART_Transmit(&huart1, "SIDE_MOTOR_TIMEOUT_ERROR\r\n", strlen("SIDE_MOTOR_TIMEOUT_ERROR\r\n"), 500);
 			}
 		#endif
+	} else if (true == globalErrors.error_UpMotorNullCurentError) {
+		error_type = UP_MOTOR_NULL_CURRENT_ERROR;
+		#ifdef ON_DEBUG_MESSAGE
+			if (curr_time_ms - prev_time_ms > 1000) {
+				prev_time_ms = curr_time_ms;
+				HAL_UART_Transmit(&huart1, "UP_MOTOR_NULL_CURRENT_ERROR\r\n", strlen("UP_MOTOR_NULL_CURRENT_ERROR\r\n"), 500);
+			}
+		#endif
+	} else if (true == globalErrors.error_DownMotorNullCurentError) {
+		error_type = DOWN_MOTOR_NULL_CURRENT_ERROR;
+		#ifdef ON_DEBUG_MESSAGE
+			if (curr_time_ms - prev_time_ms > 1000) {
+				prev_time_ms = curr_time_ms;
+				HAL_UART_Transmit(&huart1, "DOWN_MOTOR_NULL_CURRENT_ERROR\r\n", strlen("DOWN_MOTOR_NULL_CURRENT_ERROR\r\n"), 500);
+			}
+		#endif
+	} else if (true == globalErrors.error_SideMotorNullCurentError) {
+		error_type = SIDE_MOTOR_NULL_CURRENT_ERROR;
+		#ifdef ON_DEBUG_MESSAGE
+			if (curr_time_ms - prev_time_ms > 1000) {
+				prev_time_ms = curr_time_ms;
+				HAL_UART_Transmit(&huart1, "SIDE_MOTOR_NULL_CURRENT_ERROR\r\n", strlen("SIDE_MOTOR_NULL_CURRENT_ERROR\r\n"), 500);
+			}
+		#endif
 	} else {
 		error_type = NO_ERROR;
 	}
@@ -638,18 +875,21 @@ static void error_indication_loop(ErrorsType_t error_type)
 			leds_ledOn(RED);
 			break;
 		case UP_MOTOR_TIMEOUT_ERROR:
+		case UP_MOTOR_NULL_CURRENT_ERROR:
 			if (curr_time_ms - prev_time_ms > 500) {
 				prev_time_ms = curr_time_ms;
 				leds_ledToggle(RED);
 			}
 			break;
 		case DOWN_MOTOR_TIMEOUT_ERROR:
+		case DOWN_MOTOR_NULL_CURRENT_ERROR:
 			if (curr_time_ms - prev_time_ms > 1000) {
 				prev_time_ms = curr_time_ms;
 				leds_ledToggle(RED);
 			}
 			break;
 		case SIDE_MOTOR_TIMEOUT_ERROR:
+		case SIDE_MOTOR_NULL_CURRENT_ERROR:
 			if (curr_time_ms - prev_time_ms > 250) {
 				prev_time_ms = curr_time_ms;
 				leds_ledToggle(RED);

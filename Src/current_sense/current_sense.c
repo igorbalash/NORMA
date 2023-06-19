@@ -12,7 +12,7 @@ Author: Unic-Lab <https://unic-lab.ru/>
 
 #define REF_INT_VOLT_CNT					1
 #define CURRENT_SENSE_CH_CNT				3
-#define CURRENT_SENSE_DATA_SAMPLE_SIZE		4
+#define CURRENT_SENSE_DATA_SAMPLE_SIZE		16
 
 #define ADC_REF_INT_VOLTAGE_V				1.2f
 #define ADC_MAX_VAL							4095
@@ -42,6 +42,7 @@ void current_sense_stop_measure(void)
 {
 	// Деинициализация АЦП, DMA, TIM и стоп измерений
 	adc_current_senset_deinit();
+	memset(current_sense_adc_data, 0x00, sizeof(current_sense_adc_data));
 }
 
 void current_sense_process_adc_data(void)

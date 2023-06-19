@@ -41,13 +41,6 @@ int main(void)
 	MX_USART1_UART_Init();
 #endif
 
-//	// Включаем общее питание
-//	actuators_main_power_on(0);
-//	// Подаем питание на актуатор UP
-//	actuators_start_move_down(UP_ACTUATOR);
-//	actuators_start_move_down(DOWN_ACTUATOR);
-//	while(1);
-
 	// Инициализация задач FreeRTOS
 	main_tasks_initTasks();
 
