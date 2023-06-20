@@ -1,84 +1,33 @@
-/* USER CODE BEGIN Header */
-/**
-  ******************************************************************************
-  * @file    stm32f1xx_it.c
-  * @brief   Interrupt Service Routines.
-  ******************************************************************************
-  * @attention
-  *
-  * <h2><center>&copy; Copyright (c) 2023 STMicroelectronics.
-  * All rights reserved.</center></h2>
-  *
-  * This software component is licensed by ST under Ultimate Liberty license
-  * SLA0044, the "License"; You may not use this file except in compliance with
-  * the License. You may obtain a copy of the License at:
-  *                             www.st.com/SLA0044
-  *
-  ******************************************************************************
-  */
-/* USER CODE END Header */
-
-/* Includes ------------------------------------------------------------------*/
 #include "main.h"
 #include "stm32f1xx_it.h"
 #include "FreeRTOS.h"
 #include "task.h"
+
 /* Private includes ----------------------------------------------------------*/
-/* USER CODE BEGIN Includes */
-/* USER CODE END Includes */
-
-/* Private typedef -----------------------------------------------------------*/
-/* USER CODE BEGIN TD */
-
-/* USER CODE END TD */
-
-/* Private define ------------------------------------------------------------*/
-/* USER CODE BEGIN PD */
- 
-/* USER CODE END PD */
-
-/* Private macro -------------------------------------------------------------*/
-/* USER CODE BEGIN PM */
-
-/* USER CODE END PM */
-
-/* Private variables ---------------------------------------------------------*/
-/* USER CODE BEGIN PV */
-
-/* USER CODE END PV */
-
-/* Private function prototypes -----------------------------------------------*/
-/* USER CODE BEGIN PFP */
-
-/* USER CODE END PFP */
-
-/* Private user code ---------------------------------------------------------*/
-/* USER CODE BEGIN 0 */
-
-/* USER CODE END 0 */
+#include "stm32f1xx_hal.h"
+#include "version.h"
 
 /* External variables --------------------------------------------------------*/
 extern DMA_HandleTypeDef hdma_adc1;
 extern TIM_HandleTypeDef htim1;
 
-/* USER CODE BEGIN EV */
-
-/* USER CODE END EV */
-
 /******************************************************************************/
-/*           Cortex-M3 Processor Interruption and Exception Handlers          */ 
+/*           Cortex-M3 Processor Interruption and Exception Handlers          */
 /******************************************************************************/
 /**
   * @brief This function handles Non maskable interrupt.
   */
 void NMI_Handler(void)
 {
-  /* USER CODE BEGIN NonMaskableInt_IRQn 0 */
-
-  /* USER CODE END NonMaskableInt_IRQn 0 */
-  /* USER CODE BEGIN NonMaskableInt_IRQn 1 */
-
-  /* USER CODE END NonMaskableInt_IRQn 1 */
+#ifdef RELEASE_MODE
+	// В релизной прошивке перезагружаем МК
+	HAL_NVIC_SystemReset();
+#else
+	// В отладочной прошивке мигаем светодиодом и
+	// можем сделать attach to runing targer, чтобы посмотреть из-за чего произошло исключение
+	asm("BKPT #0");
+	while (1);
+#endif
 }
 
 /**
@@ -86,14 +35,15 @@ void NMI_Handler(void)
   */
 void HardFault_Handler(void)
 {
-  /* USER CODE BEGIN HardFault_IRQn 0 */
-
-  /* USER CODE END HardFault_IRQn 0 */
-  while (1)
-  {
-    /* USER CODE BEGIN W1_HardFault_IRQn 0 */
-    /* USER CODE END W1_HardFault_IRQn 0 */
-  }
+#ifdef RELEASE_MODE
+	// В релизной прошивке перезагружаем МК
+	HAL_NVIC_SystemReset();
+#else
+	// В отладочной прошивке мигаем светодиодом и
+	// можем сделать attach to runing targer, чтобы посмотреть из-за чего произошло исключение
+	asm("BKPT #0");
+	while (1);
+#endif
 }
 
 /**
@@ -101,14 +51,15 @@ void HardFault_Handler(void)
   */
 void MemManage_Handler(void)
 {
-  /* USER CODE BEGIN MemoryManagement_IRQn 0 */
-
-  /* USER CODE END MemoryManagement_IRQn 0 */
-  while (1)
-  {
-    /* USER CODE BEGIN W1_MemoryManagement_IRQn 0 */
-    /* USER CODE END W1_MemoryManagement_IRQn 0 */
-  }
+#ifdef RELEASE_MODE
+	// В релизной прошивке перезагружаем МК
+	HAL_NVIC_SystemReset();
+#else
+	// В отладочной прошивке мигаем светодиодом и
+	// можем сделать attach to runing targer, чтобы посмотреть из-за чего произошло исключение
+	asm("BKPT #0");
+	while (1);
+#endif
 }
 
 /**
@@ -116,14 +67,15 @@ void MemManage_Handler(void)
   */
 void BusFault_Handler(void)
 {
-  /* USER CODE BEGIN BusFault_IRQn 0 */
-
-  /* USER CODE END BusFault_IRQn 0 */
-  while (1)
-  {
-    /* USER CODE BEGIN W1_BusFault_IRQn 0 */
-    /* USER CODE END W1_BusFault_IRQn 0 */
-  }
+#ifdef RELEASE_MODE
+	// В релизной прошивке перезагружаем МК
+	HAL_NVIC_SystemReset();
+#else
+	// В отладочной прошивке мигаем светодиодом и
+	// можем сделать attach to runing targer, чтобы посмотреть из-за чего произошло исключение
+	asm("BKPT #0");
+	while (1);
+#endif
 }
 
 /**
@@ -131,14 +83,15 @@ void BusFault_Handler(void)
   */
 void UsageFault_Handler(void)
 {
-  /* USER CODE BEGIN UsageFault_IRQn 0 */
-
-  /* USER CODE END UsageFault_IRQn 0 */
-  while (1)
-  {
-    /* USER CODE BEGIN W1_UsageFault_IRQn 0 */
-    /* USER CODE END W1_UsageFault_IRQn 0 */
-  }
+#ifdef RELEASE_MODE
+	// В релизной прошивке перезагружаем МК
+	HAL_NVIC_SystemReset();
+#else
+	// В отладочной прошивке мигаем светодиодом и
+	// можем сделать attach to runing targer, чтобы посмотреть из-за чего произошло исключение
+	asm("BKPT #0");
+	while (1);
+#endif
 }
 
 /**
@@ -146,12 +99,15 @@ void UsageFault_Handler(void)
   */
 void DebugMon_Handler(void)
 {
-  /* USER CODE BEGIN DebugMonitor_IRQn 0 */
-
-  /* USER CODE END DebugMonitor_IRQn 0 */
-  /* USER CODE BEGIN DebugMonitor_IRQn 1 */
-
-  /* USER CODE END DebugMonitor_IRQn 1 */
+#ifdef RELEASE_MODE
+	// В релизной прошивке перезагружаем МК
+	HAL_NVIC_SystemReset();
+#else
+	// В отладочной прошивке мигаем светодиодом и
+	// можем сделать attach to runing targer, чтобы посмотреть из-за чего произошло исключение
+	asm("BKPT #0");
+	while (1);
+#endif
 }
 
 /******************************************************************************/
@@ -162,31 +118,11 @@ void DebugMon_Handler(void)
 /******************************************************************************/
 
 /**
-  * @brief This function handles EXTI line0 interrupt.
-  */
-void EXTI0_IRQHandler(void)
-{
-  /* USER CODE BEGIN EXTI0_IRQn 0 */
-
-  /* USER CODE END EXTI0_IRQn 0 */
-  HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_0);
-  /* USER CODE BEGIN EXTI0_IRQn 1 */
-
-  /* USER CODE END EXTI0_IRQn 1 */
-}
-
-/**
   * @brief This function handles EXTI line3 interrupt.
   */
 void EXTI3_IRQHandler(void)
 {
-  /* USER CODE BEGIN EXTI3_IRQn 0 */
-
-  /* USER CODE END EXTI3_IRQn 0 */
-  HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_3);
-  /* USER CODE BEGIN EXTI3_IRQn 1 */
-
-  /* USER CODE END EXTI3_IRQn 1 */
+  EXTI3_IRQ_HANDLER_PROCESSING()
 }
 
 /**
@@ -194,13 +130,7 @@ void EXTI3_IRQHandler(void)
   */
 void EXTI4_IRQHandler(void)
 {
-  /* USER CODE BEGIN EXTI4_IRQn 0 */
-
-  /* USER CODE END EXTI4_IRQn 0 */
-  HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_4);
-  /* USER CODE BEGIN EXTI4_IRQn 1 */
-
-  /* USER CODE END EXTI4_IRQn 1 */
+	EXTI4_IRQ_HANDLER_PROCESSING()
 }
 
 /**
@@ -208,13 +138,7 @@ void EXTI4_IRQHandler(void)
   */
 void DMA1_Channel1_IRQHandler(void)
 {
-  /* USER CODE BEGIN DMA1_Channel1_IRQn 0 */
-
-  /* USER CODE END DMA1_Channel1_IRQn 0 */
-  HAL_DMA_IRQHandler(&hdma_adc1);
-  /* USER CODE BEGIN DMA1_Channel1_IRQn 1 */
-
-  /* USER CODE END DMA1_Channel1_IRQn 1 */
+	HAL_DMA_IRQHandler(&hdma_adc1);
 }
 
 /**
@@ -222,13 +146,7 @@ void DMA1_Channel1_IRQHandler(void)
   */
 void EXTI9_5_IRQHandler(void)
 {
-  /* USER CODE BEGIN EXTI9_5_IRQn 0 */
-
-  /* USER CODE END EXTI9_5_IRQn 0 */
-  HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_5);
-  /* USER CODE BEGIN EXTI9_5_IRQn 1 */
-
-  /* USER CODE END EXTI9_5_IRQn 1 */
+	EXTI9_5_IRQ_HANDLER_PROCESSING()
 }
 
 /**
@@ -236,16 +154,5 @@ void EXTI9_5_IRQHandler(void)
   */
 void TIM1_UP_IRQHandler(void)
 {
-  /* USER CODE BEGIN TIM1_UP_IRQn 0 */
-
-  /* USER CODE END TIM1_UP_IRQn 0 */
   HAL_TIM_IRQHandler(&htim1);
-  /* USER CODE BEGIN TIM1_UP_IRQn 1 */
-
-  /* USER CODE END TIM1_UP_IRQn 1 */
 }
-
-/* USER CODE BEGIN 1 */
-
-/* USER CODE END 1 */
-/************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/
