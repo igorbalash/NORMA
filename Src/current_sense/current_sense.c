@@ -7,6 +7,7 @@ Author: Unic-Lab <https://unic-lab.ru/>
 #include "current_sense.h"
 #include "version.h"
 #include "adc.h"
+#include <string.h>
 
 //===================================================================================
 
