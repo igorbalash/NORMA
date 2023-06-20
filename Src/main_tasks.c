@@ -61,7 +61,7 @@ typedef enum {
 	SIDE_MOTOR_NULL_CURRENT_ERROR
 } ErrorsType_t;
 
-static void check_ext_voltage_loop(void);
+static ProcessState_t check_ext_voltage_loop(void);
 static ErrorsType_t check_device_errors(void);
 static void error_indication_loop(ErrorsType_t error_type);
 static void motor_state_indication_loop(void);
@@ -81,6 +81,8 @@ typedef struct {
 	bool flag_isNeedStopDownMotor;
 	bool flag_isNeedStopSideMotor;
 	bool flag_isNeedStopAllMotor;
+	bool flag_isMainPowerPresent;
+	bool flag_isReservePowerPresent;
 } globalFlags_t;
 
 typedef struct {
@@ -115,7 +117,9 @@ globalFlags_t globalFlags = {
 	.flag_isNeedStopUpMotor = false,
 	.flag_isNeedStopDownMotor = false,
 	.flag_isNeedStopSideMotor = false,
-	.flag_isNeedStopAllMotor = false
+	.flag_isNeedStopAllMotor = false,
+	.flag_isMainPowerPresent = false,
+	.flag_isReservePowerPresent = false
 };
 
 // структура глобальных ошибок
@@ -170,14 +174,14 @@ void main_task_sideMotor_timerCallback(void const * argument);
 // Инициализация задач
 void main_tasks_initTasks(void)
 {
-	osThreadDef(t_superloop, taskFunc_superloop, osPriorityNormal, 0, 512);
+	osThreadDef(t_superloop, taskFunc_superloop, osPriorityNormal, 0, 1024);
 	superloop_TaskHandle = osThreadCreate(osThread(t_superloop), NULL);
 }
 
 // Инициализация mutex
 void main_tasks_initOsMutex(void)
 {
-	osMutexDef(m_adcUse	);																								// создание mutex для управления доступом к ADC
+	osMutexDef(m_adcUse);																								// создание mutex для управления доступом к ADC
 	adcUse_MutexHandle = osMutexCreate(osMutex(m_adcUse));
 }
 
@@ -213,10 +217,15 @@ void taskFunc_superloop(void const* argument)
 //	motorState.state_DownMotor = ;
 //	globalVars.gvar_nearby_panel_state = ;
 
+	// Проверка внешних напряжений
+	while (check_ext_voltage_loop() != READY) {};
+
 	// Проверка условия необходимости автоматического выдвижения актуаторов
 	// Если актуаторы до перезагрузки или пропажи питания не были выдвинуты, то планируем их выдвинуть автоматически
 	if ((PULL_DOWN_POS == motorState.state_UpMotor) && (PULL_DOWN_POS == motorState.state_DownMotor) && (PULL_DOWN_POS == motorState.state_SideMotor)) {
-		globalFlags.flag_isNeedApplyForceMotor = true;
+		if (false != globalFlags.flag_isMainPowerPresent) {
+			globalFlags.flag_isNeedApplyForceMotor = true;
+		}
 	}
 
 	while(1)
@@ -417,15 +426,21 @@ static void current_sense_res_loop(void)
 
 static void motor_control_loop(void)
 {
-	// !!!! Сделать проверку, чтобы не находиться в стадии долго, чтобы не зависнуть
-
 	#define DEAFULT_STATE	0
 
-	static uint8_t loop_state = 0;
+	static uint8_t loop_state = DEAFULT_STATE;
 	static uint32_t prev_time_ms = 0;
+	static uint32_t stage_prev_time_ms = 0;
 	static bool flag_isDownMotorWasStarted = false;
 
 	uint32_t curr_time_ms = HAL_GetTick();
+
+	// На случай зависания в одной из стадий
+	if ((curr_time_ms - stage_prev_time_ms) > (3 * MOTOR_TIMEOUT_MS)) {
+		if (DEAFULT_STATE != loop_state) {
+			HAL_NVIC_SystemReset();
+		}
+	}
 
 	// Необходимость выдвинуть актуаторы
 	if (true == globalFlags.flag_isNeedApplyForceMotor) {
@@ -434,6 +449,7 @@ static void motor_control_loop(void)
 		if ((MOVING_POS != motorState.state_UpMotor) && (MOVING_POS != motorState.state_DownMotor) && (MOVING_POS != motorState.state_SideMotor)) {
 			if ((PULL_UP_POS != motorState.state_UpMotor) || (PULL_UP_POS != motorState.state_DownMotor) || (PULL_UP_POS != motorState.state_SideMotor)) {
 				loop_state = 10;
+				stage_prev_time_ms = curr_time_ms;
 			}
 		}
 	// Необходимость задвинуть актуаторы
@@ -443,6 +459,7 @@ static void motor_control_loop(void)
 		if ((MOVING_POS != motorState.state_UpMotor) && (MOVING_POS != motorState.state_DownMotor) && (MOVING_POS != motorState.state_SideMotor)) {
 			if ((PULL_DOWN_POS != motorState.state_UpMotor) || (PULL_DOWN_POS != motorState.state_DownMotor) || (PULL_DOWN_POS != motorState.state_SideMotor)) {
 				loop_state = 20;
+				stage_prev_time_ms = curr_time_ms;
 			}
 		}
 	// Необходимость немедленно остановить все актуаторы
@@ -451,6 +468,7 @@ static void motor_control_loop(void)
 		// Если актуаторы в движении, запускаем процесс
 		if ((MOVING_POS == motorState.state_UpMotor) || (MOVING_POS == motorState.state_DownMotor) || (MOVING_POS == motorState.state_SideMotor)) {			// возможно, при любом состоянии нужно запустить case
 			loop_state = 30;
+			stage_prev_time_ms = curr_time_ms;
 		}
 	}
 
@@ -745,8 +763,10 @@ static void check_nearby_panel_loop(void)
 			if (PANNEL_NO_CONNECT != globalVars.gvar_nearby_panel_state) {
 				globalVars.gvar_nearby_panel_state = PANNEL_NO_CONNECT;
 
-				// Устанавливаем необходимость задвинуть актуаторы, т.к. соседняя панель отсоединилась
-				globalFlags.flag_isNeedRemoveForceMotor = true;
+				if (false != globalFlags.flag_isMainPowerPresent) {
+					// Устанавливаем необходимость задвинуть актуаторы, т.к. соседняя панель отсоединилась
+					globalFlags.flag_isNeedRemoveForceMotor = true;
+				}
 
 				#ifdef ON_DEBUG_MESSAGE
 					HAL_UART_Transmit(&huart1, "Nearby Panel - DISCONNECT\r\n", strlen("Nearby Panel - DISCONNECT\r\n"), 500);
@@ -903,7 +923,7 @@ static void error_indication_loop(ErrorsType_t error_type)
 	}
 }
 
-static void check_ext_voltage_loop(void)
+static ProcessState_t check_ext_voltage_loop(void)
 {
 	static ProcessState_t loop_state = READY;
 	static uint32_t prev_time_ms = 0U - CHECK_EXT_VOLTAGE_PERIOD_MS;
@@ -948,6 +968,8 @@ static void check_ext_voltage_loop(void)
 				globalErrors.error_ExtPowerError = false;
 
 				if (main_volt != 0) {
+					// Устанавливаем флаг наличия внешнего основного питания
+					globalFlags.flag_isMainPowerPresent = true;
 					// Реверс полярности управления главным питанием моторов НЕ НУЖЕН
 					globalFlags.flag_isNeedRevPolMainMotorPwr = false;
 
@@ -963,6 +985,8 @@ static void check_ext_voltage_loop(void)
 				}
 
 				if (reserve_volt != 0 ) {
+					// Устанавливаем флаг наличия внешнего резервного питания
+					globalFlags.flag_isReservePowerPresent = true;
 					if ( (reserve_volt < MIN_EXT_VOLTAGE_V) || (reserve_volt > MAX_EXT_VOLTAGE_V) ) {
 						// Устанавливаем ошибку внешнего питания
 						globalErrors.error_ExtPowerError = true;
@@ -978,6 +1002,7 @@ static void check_ext_voltage_loop(void)
 		default:
 			break;
 	}
+	return loop_state;
 }
 
 //===================================================================================
