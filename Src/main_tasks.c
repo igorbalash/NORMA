@@ -23,7 +23,7 @@ Author: Unic-Lab <https://unic-lab.ru/>
 #include "buttons.h"
 
 #ifdef ON_DEBUG_MESSAGE
-	#include "usart.h"
+	#include "debug.h"
 	#include "string.h"
 	#include <stdio.h>
 

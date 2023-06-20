@@ -28,4 +28,6 @@ void actuators_stop_move(ActuatorType_t act_type);
 void actuators_main_power_on(bool is_need_reverse_polarity);
 void actuators_main_power_off(bool is_need_reverse_polarity);
 
+//===================================================================================
+
 #endif // _ACTUATORS_H_

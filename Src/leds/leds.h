@@ -21,4 +21,6 @@ void leds_ledOn(LedColor_t color);
 void leds_ledOff(LedColor_t color);
 void leds_ledToggle(LedColor_t color);
 
+//===================================================================================
+
 #endif // _LEDS_H_

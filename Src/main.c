@@ -9,13 +9,13 @@
 #include "nearby_panel.h"
 #include "actuators.h"
 #include "buttons.h"
+#include "cmsis_os.h"
+
+#ifdef ON_DEBUG_MESSAGE
+	#include "debug.h"
+#endif
 
 //===================================================================================
-
-#include "cmsis_os.h"
-#include "usart.h"
-
-void MX_FREERTOS_Init(void);
 
 int main(void)
 {
@@ -36,7 +36,7 @@ int main(void)
 	nearby_panel_init();
 
 #ifdef ON_DEBUG_MESSAGE
-	MX_USART1_UART_Init();
+	debug_init();
 #endif
 
 	// Инициализация задач FreeRTOS
