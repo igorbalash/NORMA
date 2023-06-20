@@ -30,6 +30,11 @@ Author: Unic-Lab <https://unic-lab.ru/>
 	#define PRODUCT_VARIANT_FUNC	2
 	#define ON_DEBUG_MESSAGE
 
+#elif (BUILT_TYPE == BUILD_WITH_EMULATE_SIDE_PANEL)
+	#define PRODUCT_VARIANT_FUNC	3
+	#define SWAP_DOWN_SIDE_PINS
+	#define ON_DEBUG_MESSAGE
+
 #else
 	#error "unknown BUILD type"
 #endif

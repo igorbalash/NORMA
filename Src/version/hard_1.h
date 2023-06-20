@@ -135,6 +135,13 @@ Author: Unic-Lab <https://unic-lab.ru/>
 #define SIDE_1_MOTOR_PWR_PULL						GPIO_NOPULL
 #define SIDE_1_MOTOR_PWR_MODE						GPIO_MODE_OUTPUT_PP
 
+#ifdef SWAP_DOWN_SIDE_PINS
+	#undef DOWN_MOTOR_PWR_PIN
+	#undef SIDE_1_MOTOR_PWR_PIN
+	#define DOWN_MOTOR_PWR_PIN						GPIO_PIN_6
+	#define SIDE_1_MOTOR_PWR_PIN					GPIO_PIN_4
+#endif
+
 // switch
 #define MOTOR_SWITCH_GPIO_CLK_ENABLE()				{ __HAL_RCC_GPIOC_CLK_ENABLE(); }
 
@@ -158,6 +165,13 @@ Author: Unic-Lab <https://unic-lab.ru/>
 #define SIDE_1_MOTOR_SWITCH_PIN						GPIO_PIN_5
 #define SIDE_1_MOTOR_SWITCH_PULL					GPIO_NOPULL
 #define SIDE_1_MOTOR_SWITCH_MODE					GPIO_MODE_OUTPUT_PP
+
+#ifdef SWAP_DOWN_SIDE_PINS
+	#undef DOWN_MOTOR_SWITCH_PIN
+	#undef SIDE_1_MOTOR_SWITCH_PIN
+	#define DOWN_MOTOR_SWITCH_PIN					GPIO_PIN_5
+	#define SIDE_1_MOTOR_SWITCH_PIN					GPIO_PIN_3
+#endif
 
 //===================================================================================
 
@@ -191,6 +205,17 @@ Author: Unic-Lab <https://unic-lab.ru/>
 #define SIDE_1_CURRENT_SENSE_PORT					GPIOA
 #define SIDE_1_CURRENT_SENSE_PIN					GPIO_PIN_4
 #define SIDE_1_CURRENT_ADC_CH						ADC_CHANNEL_4
+
+#ifdef SWAP_DOWN_SIDE_PINS
+	#undef DOWN_CURRENT_ADC_CH
+	#undef SIDE_1_CURRENT_ADC_CH
+	#undef DOWN_CURRENT_SENSE_PIN
+	#undef SIDE_1_CURRENT_SENSE_PIN
+	#define DOWN_CURRENT_SENSE_PIN					GPIO_PIN_4
+	#define SIDE_1_CURRENT_SENSE_PIN				GPIO_PIN_2
+	#define DOWN_CURRENT_ADC_CH						ADC_CHANNEL_4
+	#define SIDE_1_CURRENT_ADC_CH					ADC_CHANNEL_2
+#endif
 
 #define CURRENT_SENSE_DIV_RES_UP_OHM				10000.0f
 #define CURRENT_SENSE_DIV_RES_DOWN_OHM				6800.0f

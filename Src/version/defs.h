@@ -24,8 +24,10 @@ Author: Unic-Lab <https://unic-lab.ru/>
 #define BUILD_NO_LOG						1
 // сборка ИТОГОВОЙ прошивки с [ВКЛ] LOG
 #define BUILD_WITH_LOG						2
+// сборка прошивки с подключением боковой панели на разъем нижнего актуатора в hard_1
+#define BUILD_WITH_EMULATE_SIDE_PANEL		3
 
 //===================================================================================
 
 // текущая сборка
-#define BUILT_TYPE							BUILD_WITH_LOG
+#define BUILT_TYPE							BUILD_WITH_EMULATE_SIDE_PANEL
