@@ -668,7 +668,7 @@
                 </option>
                 <option>
                     <name>OOCOutputFile</name>
-                    <state>NORMA-STM32F103R8T6.hex</state>
+                    <state>NORMA-STM32F103R8T6.bin</state>
                 </option>
                 <option>
                     <name>OOCCommandLineProducer</name>
