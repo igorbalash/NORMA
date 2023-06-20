@@ -11,6 +11,7 @@ Author: Unic-Lab <https://unic-lab.ru/>
 #include "task.h"
 #include "cmsis_os.h"
 #include "stm32f1xx_hal.h"
+#include <stdbool.h>
 
 #include "leds.h"
 #include "reset.h"
@@ -19,10 +20,8 @@ Author: Unic-Lab <https://unic-lab.ru/>
 #include "panel_type.h"
 #include "nearby_panel.h"
 #include "actuators.h"
-#include <stdbool.h>
+#include "buttons.h"
 
-//===================================================================================
-// Временно
 #ifdef ON_DEBUG_MESSAGE
 	#include "usart.h"
 	#include "string.h"
@@ -30,12 +29,13 @@ Author: Unic-Lab <https://unic-lab.ru/>
 
 	char debug_buf[256] = {0};
 #endif
-// Временно
+
 //===================================================================================
 
 #define CHECK_EXT_VOLTAGE_PERIOD_MS				10000
 #define MOTOR_MOVING_INDICATION_PERIOD_MS		500
 #define CURRENT_DETECT_DELAY_MS					300
+#define BUTTONS_ANTI_BOUNCE_MS					100
 
 //===================================================================================
 
@@ -47,7 +47,8 @@ typedef enum {
 typedef enum {
 	PULL_DOWN_POS = 0,
 	PULL_UP_POS,
-	MOVING_POS
+	MOVING_POS,
+	NEUTRAL_POS																											// DEL: only for debug
 } MotorPosition_t;
 
 typedef enum {
@@ -69,6 +70,7 @@ static void check_nearby_panel_loop(void);
 static void motor_control_loop(void);
 static void current_sense_res_loop(void);
 static void timer_control_loop(void);
+static void buttons_control_loop(void);
 
 //===================================================================================
 
@@ -83,6 +85,9 @@ typedef struct {
 	bool flag_isNeedStopAllMotor;
 	bool flag_isMainPowerPresent;
 	bool flag_isReservePowerPresent;
+	bool flag_isUpButtonPressed;
+	bool flag_isDownButtonPressed;
+	bool flag_isStopButtonPressed;
 } globalFlags_t;
 
 typedef struct {
@@ -119,7 +124,10 @@ globalFlags_t globalFlags = {
 	.flag_isNeedStopSideMotor = false,
 	.flag_isNeedStopAllMotor = false,
 	.flag_isMainPowerPresent = false,
-	.flag_isReservePowerPresent = false
+	.flag_isReservePowerPresent = false,
+	.flag_isUpButtonPressed = false,
+	.flag_isDownButtonPressed = false,
+	.flag_isStopButtonPressed = false
 };
 
 // структура глобальных ошибок
@@ -204,6 +212,9 @@ void main_tasks_initOsTimer(void)
 // Задачи
 void taskFunc_superloop(void const* argument)
 {
+	// Вспомогательная переменная
+	bool flag_isConditionTrue = false;
+
 	// Индикация появившегося питания
 	leds_ledOn(GREEN);
 
@@ -222,7 +233,17 @@ void taskFunc_superloop(void const* argument)
 
 	// Проверка условия необходимости автоматического выдвижения актуаторов
 	// Если актуаторы до перезагрузки или пропажи питания не были выдвинуты, то планируем их выдвинуть автоматически
-	if ((PULL_DOWN_POS == motorState.state_UpMotor) && (PULL_DOWN_POS == motorState.state_DownMotor) && (PULL_DOWN_POS == motorState.state_SideMotor)) {
+	if (COMMON == globalVars.gvar_panel_type) {
+		if ((PULL_DOWN_POS == motorState.state_UpMotor) && (PULL_DOWN_POS == motorState.state_DownMotor)) {
+			flag_isConditionTrue = true;
+		}
+	} else {
+		if ((PULL_DOWN_POS == motorState.state_UpMotor) && (PULL_DOWN_POS == motorState.state_DownMotor) && (PULL_DOWN_POS == motorState.state_SideMotor)) {
+			flag_isConditionTrue = true;
+		}
+	}
+
+	if (true == flag_isConditionTrue) {
 		if (false != globalFlags.flag_isMainPowerPresent) {
 			globalFlags.flag_isNeedApplyForceMotor = true;
 		}
@@ -238,6 +259,9 @@ void taskFunc_superloop(void const* argument)
 
 		// Цикл индикации ошибки
 		error_indication_loop(error_type);
+
+		// Цикл обработки кнопок
+		buttons_control_loop();
 
 		// Цикл проверки подключенности соседней панели (актуально только для обычной панели)
 		if (COMMON == globalVars.gvar_panel_type) {
@@ -267,6 +291,87 @@ void taskFunc_superloop(void const* argument)
 }
 
 //===================================================================================
+
+
+static void buttons_control_loop(void)
+{
+	#define DEAFULT_STATE	0
+
+	static uint32_t prev_time_ms = 0;
+	static uint8_t loop_state = DEAFULT_STATE;
+
+	uint32_t curr_time_ms = HAL_GetTick();
+
+	switch (loop_state)
+	{
+		case 0:
+		{
+			if (true == globalFlags.flag_isStopButtonPressed) {
+				loop_state = 1;
+			} else if (true == globalFlags.flag_isDownButtonPressed) {
+				loop_state = 2;
+			} else if (true == globalFlags.flag_isUpButtonPressed) {
+				loop_state = 3;
+			} else {
+				prev_time_ms = curr_time_ms;
+			}
+			break;
+		}
+		case 1:	//STOP
+		{
+			if (curr_time_ms - prev_time_ms >= BUTTONS_ANTI_BOUNCE_MS) {
+				loop_state = 4;
+				globalFlags.flag_isStopButtonPressed = false;
+				if (PRESSED_BTN == buttons_getState(STOP_BTN)) {
+					// Устанавливаем флаг необходимости остановки всех движущихся актуаторов
+					globalFlags.flag_isNeedStopAllMotor = true;
+					#ifdef ON_DEBUG_MESSAGE
+						HAL_UART_Transmit(&huart1, "STOP BUTTON - PRESSED\r\n", strlen("STOP BUTTON - PRESSED\r\n"), 500);
+					#endif
+				}
+			}
+			break;
+		}
+		case 2:	// DOWN
+		{
+			if (curr_time_ms - prev_time_ms >= BUTTONS_ANTI_BOUNCE_MS) {
+				loop_state = 4;
+				globalFlags.flag_isDownButtonPressed = false;
+				if (PRESSED_BTN == buttons_getState(DOWN_BTN)) {
+					// Устанавливаем флаг необходимости опускания актуаторов
+					globalFlags.flag_isNeedRemoveForceMotor = true;
+					#ifdef ON_DEBUG_MESSAGE
+						HAL_UART_Transmit(&huart1, "DOWN BUTTON - PRESSED\r\n", strlen("DOWN BUTTON - PRESSED\r\n"), 500);
+					#endif
+				}
+			}
+			break;
+		}
+		case 3:	// UP
+		{
+			if (curr_time_ms - prev_time_ms >= BUTTONS_ANTI_BOUNCE_MS) {
+				loop_state = 4;
+				globalFlags.flag_isUpButtonPressed = false;
+				if (PRESSED_BTN == buttons_getState(UP_BTN)) {
+					// Устанавливаем флаг необходимости выдвижения актуаторов
+					globalFlags.flag_isNeedApplyForceMotor = true;
+					#ifdef ON_DEBUG_MESSAGE
+						HAL_UART_Transmit(&huart1, "UP BUTTON - PRESSED\r\n", strlen("UP BUTTON - PRESSED\r\n"), 500);
+					#endif
+				}
+			}
+			break;
+		}
+		case 4:
+		{
+			prev_time_ms = curr_time_ms;
+			loop_state = DEAFULT_STATE;
+			break;
+		}
+		default:
+			break;
+	}
+}
 
 static void timer_control_loop(void)
 {
@@ -428,6 +533,8 @@ static void motor_control_loop(void)
 {
 	#define DEAFULT_STATE	0
 
+	// Вспомогательная переменная
+	bool flag_isConditionTrue = false;
 	static uint8_t loop_state = DEAFULT_STATE;
 	static uint32_t prev_time_ms = 0;
 	static uint32_t stage_prev_time_ms = 0;
@@ -447,26 +554,48 @@ static void motor_control_loop(void)
 		globalFlags.flag_isNeedApplyForceMotor = false;
 		// Если актуаторы не в движении, запускаем процесс
 		if ((MOVING_POS != motorState.state_UpMotor) && (MOVING_POS != motorState.state_DownMotor) && (MOVING_POS != motorState.state_SideMotor)) {
-			if ((PULL_UP_POS != motorState.state_UpMotor) || (PULL_UP_POS != motorState.state_DownMotor) || (PULL_UP_POS != motorState.state_SideMotor)) {
+			if (COMMON == globalVars.gvar_panel_type) {
+				if ((PULL_UP_POS != motorState.state_UpMotor) || (PULL_UP_POS != motorState.state_DownMotor)) {
+					flag_isConditionTrue = true;
+				}
+			} else {
+				if ((PULL_UP_POS != motorState.state_UpMotor) || (PULL_UP_POS != motorState.state_DownMotor) || (PULL_UP_POS != motorState.state_SideMotor)) {
+					flag_isConditionTrue = true;
+				}
+			}
+
+			if (true == flag_isConditionTrue) {
 				loop_state = 10;
 				stage_prev_time_ms = curr_time_ms;
 			}
 		}
+
 	// Необходимость задвинуть актуаторы
 	} else if (true == globalFlags.flag_isNeedRemoveForceMotor) {
 		globalFlags.flag_isNeedRemoveForceMotor = false;
 		// Если актуатор не в движении и не внизу, запускаем процесс
 		if ((MOVING_POS != motorState.state_UpMotor) && (MOVING_POS != motorState.state_DownMotor) && (MOVING_POS != motorState.state_SideMotor)) {
-			if ((PULL_DOWN_POS != motorState.state_UpMotor) || (PULL_DOWN_POS != motorState.state_DownMotor) || (PULL_DOWN_POS != motorState.state_SideMotor)) {
+			if (COMMON == globalVars.gvar_panel_type) {
+				if ((PULL_DOWN_POS != motorState.state_UpMotor) || (PULL_DOWN_POS != motorState.state_DownMotor)) {
+					flag_isConditionTrue = true;
+				}
+			} else {
+				if ((PULL_DOWN_POS != motorState.state_UpMotor) || (PULL_DOWN_POS != motorState.state_DownMotor) || (PULL_DOWN_POS != motorState.state_SideMotor)) {
+					flag_isConditionTrue = true;
+				}
+			}
+
+			if (true == flag_isConditionTrue) {
 				loop_state = 20;
 				stage_prev_time_ms = curr_time_ms;
 			}
 		}
+
 	// Необходимость немедленно остановить все актуаторы
 	} else if (true == globalFlags.flag_isNeedStopAllMotor) {
 		globalFlags.flag_isNeedStopAllMotor = false;
 		// Если актуаторы в движении, запускаем процесс
-		if ((MOVING_POS == motorState.state_UpMotor) || (MOVING_POS == motorState.state_DownMotor) || (MOVING_POS == motorState.state_SideMotor)) {			// возможно, при любом состоянии нужно запустить case
+		if ((MOVING_POS == motorState.state_UpMotor) || (MOVING_POS == motorState.state_DownMotor) || (MOVING_POS == motorState.state_SideMotor)) {
 			loop_state = 30;
 			stage_prev_time_ms = curr_time_ms;
 		}
@@ -641,7 +770,7 @@ static void motor_control_loop(void)
 			}
 			break;
 		}
-		case 21:
+		case 21:																										// case 2X - процесс ЗАДВИЖЕНИЯ актуаторов
 			if (MOVING_POS != motorState.state_UpMotor && PULL_DOWN_POS != motorState.state_UpMotor) {
 				// Меняем состояние мотора UP
 				motorState.state_UpMotor = MOVING_POS;
@@ -706,7 +835,27 @@ static void motor_control_loop(void)
 				loop_state = 40;
 			}
 			break;
-		case 30:
+		case 30:																										// case 3X - процесс ОСТАНОВКИ ВСЕХ актуаторов
+			// Останавливаем таймер
+			osTimerStop(upMotor_TimerHandle);
+			osTimerStop(downMotor_TimerHandle);
+			osTimerStop(sideMotor_TimerHandle);
+
+			// Останавливаем актуатор
+			actuators_stop_move(UP_ACTUATOR);
+			actuators_stop_move(DOWN_ACTUATOR);
+			actuators_stop_move(SIDE_ACTUATOR);
+
+			// !!!!!!!! Вычитываем из Flash предыдущие состояния и записываем в глобальные переменные
+			// !!!!!!!! Пока нет Falsh - устанавливаем в Нейтральное положение, чтобы можно было после СТОП в любую сторону ехать
+			motorState.state_UpMotor = NEUTRAL_POS;
+			motorState.state_DownMotor = NEUTRAL_POS;
+			motorState.state_SideMotor = NEUTRAL_POS;
+
+			flag_isDownMotorWasStarted = false;
+
+			// Меняем стадию
+			loop_state = 40;
 			break;
 		case 40:
 			// Выключаем общее питание
@@ -1012,6 +1161,31 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc)
 {
 	if (hadc->Instance == ADC1) {
 		globalFlags.flag_isAdcСonvReady = true;
+	}
+}
+
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
+{
+	switch (GPIO_Pin)
+	{
+		case UP_BUTTON_PIN:
+		{
+			globalFlags.flag_isUpButtonPressed = true;
+			break;
+		}
+		case DOWN_BUTTON_PIN:
+		{
+			globalFlags.flag_isDownButtonPressed = true;
+			break;
+		}
+		case STOP_BUTTON_PIN:
+		{
+			globalFlags.flag_isStopButtonPressed = true;
+			break;
+		}
+		default:
+
+			break;
 	}
 }
 

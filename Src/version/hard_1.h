@@ -30,18 +30,21 @@ Author: Unic-Lab <https://unic-lab.ru/>
 // defines для модуля buttons.h
 #define BUTTONS_GPIO_CLK_ENABLE()					{ __HAL_RCC_GPIOB_CLK_ENABLE(); }
 
+#define UP_BUTTON_PRESSED_STATE						GPIO_PIN_RESET
 #define UP_BUTTON_PORT								GPIOB
 #define UP_BUTTON_PIN								GPIO_PIN_3
 #define UP_BUTTON_PULL								GPIO_NOPULL
 #define UP_BUTTON_MODE								GPIO_MODE_IT_FALLING
 #define UP_BUTTON_EXTI_IRQN							EXTI3_IRQn
 
+#define DOWN_BUTTON_PRESSED_STATE					GPIO_PIN_RESET
 #define DOWN_BUTTON_PORT							GPIOB
 #define DOWN_BUTTON_PIN								GPIO_PIN_4
 #define DOWN_BUTTON_PULL							GPIO_NOPULL
 #define DOWN_BUTTON_MODE							GPIO_MODE_IT_FALLING
 #define DOWN_BUTTON_EXTI_IRQN						EXTI4_IRQn
 
+#define STOP_BUTTON_PRESSED_STATE					GPIO_PIN_RESET
 #define STOP_BUTTON_PORT							GPIOB
 #define STOP_BUTTON_PIN								GPIO_PIN_5
 #define STOP_BUTTON_PULL							GPIO_NOPULL
@@ -50,7 +53,7 @@ Author: Unic-Lab <https://unic-lab.ru/>
 
 #define EXTI3_IRQ_HANDLER_PROCESSING()				{ HAL_GPIO_EXTI_IRQHandler(UP_BUTTON_PIN); }
 #define EXTI4_IRQ_HANDLER_PROCESSING()				{ HAL_GPIO_EXTI_IRQHandler(DOWN_BUTTON_PIN); }
-#define EXTI5_IRQ_HANDLER_PROCESSING()				{ HAL_GPIO_EXTI_IRQHandler(STOP_BUTTON_PIN); }
+#define EXTI9_5_IRQ_HANDLER_PROCESSING()			{ HAL_GPIO_EXTI_IRQHandler(STOP_BUTTON_PIN); }
 
 //===================================================================================
 

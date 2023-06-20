@@ -8,12 +8,12 @@
 #include "panel_type.h"
 #include "nearby_panel.h"
 #include "actuators.h"
+#include "buttons.h"
 
 //===================================================================================
 
 #include "cmsis_os.h"
 #include "usart.h"
-#include "gpio.h"
 
 void MX_FREERTOS_Init(void);
 
@@ -31,11 +31,9 @@ int main(void)
 	// Инициализация модулей
 	actuators_init();
 	leds_init();
+	buttons_init();
 	panel_type_init();
 	nearby_panel_init();
-
-	/* Initialize all configured peripherals */
-//	MX_GPIO_Init();
 
 #ifdef ON_DEBUG_MESSAGE
 	MX_USART1_UART_Init();

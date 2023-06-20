@@ -30,4 +30,4 @@ Author: Unic-Lab <https://unic-lab.ru/>
 //===================================================================================
 
 // текущая сборка
-#define BUILT_TYPE							BUILD_WITH_EMULATE_SIDE_PANEL
+#define BUILT_TYPE							BUILD_NO_LOG

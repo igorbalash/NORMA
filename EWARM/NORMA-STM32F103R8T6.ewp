@@ -368,6 +368,7 @@
                     <state>$PROJ_DIR$\..\Src\panel</state>
                     <state>$PROJ_DIR$\..\Src\current_sense</state>
                     <state>$PROJ_DIR$\..\Src\actuators</state>
+                    <state>$PROJ_DIR$\..\Src\buttons</state>
                 </option>
                 <option>
                     <name>CCStdIncCheck</name>
@@ -1087,6 +1088,15 @@
                 </file>
                 <file>
                     <name>$PROJ_DIR$\..\Src\actuators\actuators.h</name>
+                </file>
+            </group>
+            <group>
+                <name>buttons</name>
+                <file>
+                    <name>$PROJ_DIR$\..\Src\buttons\buttons.c</name>
+                </file>
+                <file>
+                    <name>$PROJ_DIR$\..\Src\buttons\buttons.h</name>
                 </file>
             </group>
             <group>

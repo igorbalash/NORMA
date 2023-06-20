@@ -1206,6 +1206,15 @@
                 </file>
             </group>
             <group>
+                <name>buttons</name>
+                <file>
+                    <name>$PROJ_DIR$\..\Src\buttons\buttons.c</name>
+                </file>
+                <file>
+                    <name>$PROJ_DIR$\..\Src\buttons\buttons.h</name>
+                </file>
+            </group>
+            <group>
                 <name>core</name>
                 <file>
                     <name>$PROJ_DIR$\..\Src\core\clock_system.c</name>
