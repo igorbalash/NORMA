@@ -21,6 +21,7 @@ Author: Unic-Lab <https://unic-lab.ru/>
 #include "nearby_panel.h"
 #include "actuators.h"
 #include "buttons.h"
+#include "flash_storage.h"
 
 #ifdef ON_DEBUG_MESSAGE
 	#include "debug.h"
@@ -48,7 +49,7 @@ typedef enum {
 	PULL_DOWN_POS = 0,
 	PULL_UP_POS,
 	MOVING_POS,
-	NEUTRAL_POS																											// DEL: only for debug
+	NEUTRAL_POS
 } MotorPosition_t;
 
 typedef enum {
@@ -71,6 +72,7 @@ static void motor_control_loop(void);
 static void current_sense_res_loop(void);
 static void timer_control_loop(void);
 static void buttons_control_loop(void);
+static void storage_backup_loop(void);
 
 //===================================================================================
 
@@ -104,11 +106,15 @@ typedef struct {
 	MotorPosition_t state_UpMotor;
 	MotorPosition_t state_DownMotor;
 	MotorPosition_t state_SideMotor;
+	MotorPosition_t state_UpMotorInFlash;
+	MotorPosition_t state_DownMotorInFlash;
+	MotorPosition_t state_SideMotorInFlash;
 } motorState_t;
 
 typedef struct {
 	PanelType_t gvar_panel_type;
 	NearbyPanelState_t gvar_nearby_panel_state;
+	NearbyPanelState_t gvar_nearby_panel_state_InFlash;
 } globalVars_t;
 
 //===================================================================================
@@ -145,13 +151,17 @@ globalErrors_t globalErrors = {
 motorState_t motorState = {
 	.state_UpMotor = PULL_DOWN_POS,
 	.state_DownMotor = PULL_DOWN_POS,
-	.state_SideMotor = PULL_DOWN_POS
+	.state_SideMotor = PULL_DOWN_POS,
+	.state_UpMotorInFlash = PULL_DOWN_POS,
+	.state_DownMotorInFlash = PULL_DOWN_POS,
+	.state_SideMotorInFlash = PULL_DOWN_POS
 };
 
 // структура глобальных переменных
 globalVars_t globalVars = {
 	.gvar_panel_type = COMMON,																							// тип панели, управляемой ПО
-	.gvar_nearby_panel_state = PANNEL_NO_CONNECT																		// состояние соседней панели
+	.gvar_nearby_panel_state = PANNEL_NO_CONNECT,																		// состояние соседней панели
+ 	.gvar_nearby_panel_state_InFlash = PANNEL_NO_CONNECT
 };
 
 //===================================================================================
@@ -221,12 +231,16 @@ void taskFunc_superloop(void const* argument)
 	// Определение типа панели
 	globalVars.gvar_panel_type = panel_type_get_type();
 
-	// Чтение из Flash текущего состояния актуаторов
-	// Обновляем состояния
-//	motorState.state_SideMotor = ;
-//	motorState.state_UpMotor = ;
-//	motorState.state_DownMotor = ;
-//	globalVars.gvar_nearby_panel_state = ;
+	// Инициализация хранилища
+	flash_storage_init();
+
+	//	Чтение состояний акутаторов и наличия соседней панели из хранилища
+	if (true == flash_storage_restore((uint8_t*)&motorState.state_UpMotorInFlash, (uint8_t*)&motorState.state_DownMotorInFlash, (uint8_t*)&motorState.state_SideMotorInFlash, (uint8_t*)&globalVars.gvar_nearby_panel_state_InFlash)) {
+		motorState.state_UpMotor = motorState.state_UpMotorInFlash;
+		motorState.state_DownMotor = motorState.state_DownMotorInFlash;
+		motorState.state_SideMotor = motorState.state_SideMotorInFlash;
+		globalVars.gvar_nearby_panel_state = globalVars.gvar_nearby_panel_state_InFlash;
+	}
 
 	// Проверка внешних напряжений
 	while (check_ext_voltage_loop() != READY) {};
@@ -278,7 +292,7 @@ void taskFunc_superloop(void const* argument)
 		current_sense_res_loop();
 
 		// Цикл сохранения во Flash состояний моторов
-		// Если они все не в движении и какой-то изменил свое состояние - пишем во Flash
+		storage_backup_loop();
 
 		// Цикл индикации состояния моторов
 		motor_state_indication_loop();
@@ -292,6 +306,25 @@ void taskFunc_superloop(void const* argument)
 
 //===================================================================================
 
+static void storage_backup_loop(void)
+{
+	// Если актуаторы не в движении сохраняем состояния во Flash при необходимости
+	if ((MOVING_POS != motorState.state_UpMotor) && (MOVING_POS != motorState.state_DownMotor) && (MOVING_POS != motorState.state_SideMotor)) {
+		if ((motorState.state_UpMotorInFlash != motorState.state_UpMotor) ||
+			(motorState.state_DownMotorInFlash != motorState.state_DownMotor) ||
+			(motorState.state_SideMotorInFlash != motorState.state_SideMotor) ||
+			(globalVars.gvar_nearby_panel_state_InFlash != globalVars.gvar_nearby_panel_state)) {
+
+				// При успешной записи во Flash менеям состояния глобальных переменных
+				if (true == flash_storage_backup(motorState.state_UpMotor, motorState.state_DownMotor, motorState.state_SideMotor, globalVars.gvar_nearby_panel_state)) {
+					motorState.state_UpMotorInFlash = motorState.state_UpMotor;
+					motorState.state_DownMotorInFlash = motorState.state_DownMotor;
+					motorState.state_SideMotorInFlash = motorState.state_SideMotor;
+					globalVars.gvar_nearby_panel_state_InFlash = globalVars.gvar_nearby_panel_state;
+				}
+		}
+	}
+}
 
 static void buttons_control_loop(void)
 {
@@ -846,11 +879,13 @@ static void motor_control_loop(void)
 			actuators_stop_move(DOWN_ACTUATOR);
 			actuators_stop_move(SIDE_ACTUATOR);
 
-			// !!!!!!!! Вычитываем из Flash предыдущие состояния и записываем в глобальные переменные
-			// !!!!!!!! Пока нет Falsh - устанавливаем в Нейтральное положение, чтобы можно было после СТОП в любую сторону ехать
+			// Устанавливаем в нейтральное положение, чтобы можно было после СТОП в любую сторону ехать
 			motorState.state_UpMotor = NEUTRAL_POS;
 			motorState.state_DownMotor = NEUTRAL_POS;
-			motorState.state_SideMotor = NEUTRAL_POS;
+
+			if (COMMON != globalVars.gvar_panel_type) {
+				motorState.state_SideMotor = NEUTRAL_POS;
+			}
 
 			flag_isDownMotorWasStarted = false;
 
@@ -862,6 +897,8 @@ static void motor_control_loop(void)
 			actuators_main_power_off(globalFlags.flag_isNeedRevPolMainMotorPwr);
 			// Останавливаем сэмплирование каналов current sense resistors
 			current_sense_stop_measure();
+			// Сбрасываем флаг
+			globalFlags.flag_isAdcСonvReady = false;
 			// Освобождаем доступ к ADC, возвращая mutex
 			osMutexRelease(adcUse_MutexHandle);
 			// Меняем стадию
@@ -878,7 +915,8 @@ static void check_nearby_panel_loop(void)
 	#define DISCONN_NEARBY_PANEL_PERIOD_MS		(MOTOR_TIMEOUT_MS / PANEL_STATE_REPETITIONS_CNT)
 	#define CONN_NEARBY_PANEL_PERIOD_MS			125
 
-	static uint8_t panel_state_bits = ~PANNEL_NO_CONNECT + 1;
+	// Начальное значение 1 для того, чтобы новое состояние обновилось не сразу, а в течении PANEL_STATE_REPETITIONS_CNT
+	static uint8_t panel_state_bits = 1;
 	static uint32_t prev_time_ms = 0U - CONN_NEARBY_PANEL_PERIOD_MS;
 	uint32_t check_period_ms;
 

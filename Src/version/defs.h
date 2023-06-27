@@ -10,13 +10,13 @@ Author: Unic-Lab <https://unic-lab.ru/>
 //===================================================================================
 
 // отладочная сборка
-#define BUILD_DEBUG_JLINK					1																			// ВЫКЛ. IWDG_APP, ВЫКЛ. RESET МК в hard_fauld, доступен J-LINK
+#define BUILD_DEBUG_JLINK					0																			// ВЫКЛ. IWDG_APP, ВЫКЛ. RESET МК в hard_fauld, доступен J-LINK
 
 // релизная сборка
 #define BUILD_RELEASE_JLINK					0																			// ВКЛ. IWDG_APP, ВКЛ. RESET МК в hard_fauld, доступен J-LINK
 
 // релизная сборка
-#define BUILD_RELEASE_NO_JLINK				0																			// ВКЛ. IWDG_APP, ВКЛ. RESET МК в hard_fauld
+#define BUILD_RELEASE_NO_JLINK				1																			// ВКЛ. IWDG_APP, ВКЛ. RESET МК в hard_fauld
 
 //===================================================================================
 

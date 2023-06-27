@@ -1193,6 +1193,9 @@
             <file>
                 <name>$PROJ_DIR$\startup_stm32f103xb.s</name>
             </file>
+            <file>
+                <name>$PROJ_DIR$\startup_stm32f103xe.s</name>
+            </file>
         </group>
         <group>
             <name>Src</name>
@@ -1290,6 +1293,33 @@
                 </file>
                 <file>
                     <name>$PROJ_DIR$\..\Src\reset\reset.h</name>
+                </file>
+            </group>
+            <group>
+                <name>storage</name>
+                <file>
+                    <name>$PROJ_DIR$\..\Src\storage\crc16_ccit.c</name>
+                </file>
+                <file>
+                    <name>$PROJ_DIR$\..\Src\storage\crc16_ccit.h</name>
+                </file>
+                <file>
+                    <name>$PROJ_DIR$\..\Src\storage\flash.c</name>
+                </file>
+                <file>
+                    <name>$PROJ_DIR$\..\Src\storage\flash.h</name>
+                </file>
+                <file>
+                    <name>$PROJ_DIR$\..\Src\storage\flash_storage.c</name>
+                </file>
+                <file>
+                    <name>$PROJ_DIR$\..\Src\storage\flash_storage.h</name>
+                </file>
+                <file>
+                    <name>$PROJ_DIR$\..\Src\storage\storage.c</name>
+                </file>
+                <file>
+                    <name>$PROJ_DIR$\..\Src\storage\storage.h</name>
                 </file>
             </group>
             <group>

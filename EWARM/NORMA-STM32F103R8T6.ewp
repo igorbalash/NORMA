@@ -78,7 +78,7 @@
                 </option>
                 <option>
                     <name>OGChipSelectEditMenu</name>
-                    <state>STM32F103R8	ST STM32F103R8</state>
+                    <state>STM32F103RC	ST STM32F103RC</state>
                 </option>
                 <option>
                     <name>GenLowLevelInterface</name>
@@ -138,7 +138,7 @@
                 </option>
                 <option>
                     <name>GFPUDeviceSlave</name>
-                    <state>STM32F103R8	ST STM32F103R8</state>
+                    <state>STM32F103RC	ST STM32F103RC</state>
                 </option>
                 <option>
                     <name>FPU2</name>
@@ -225,7 +225,7 @@
                 <option>
                     <name>CCDefines</name>
                     <state>USE_HAL_DRIVER</state>
-                    <state>STM32F103xB</state>
+                    <state>STM32F103xE</state>
                 </option>
                 <option>
                     <name>CCPreprocFile</name>
@@ -370,6 +370,7 @@
                     <state>$PROJ_DIR$\..\Src\actuators</state>
                     <state>$PROJ_DIR$\..\Src\buttons</state>
                     <state>$PROJ_DIR$\..\Src\debug</state>
+                    <state>$PROJ_DIR$\..\Src\storage</state>
                 </option>
                 <option>
                     <name>CCStdIncCheck</name>
@@ -788,7 +789,7 @@
                 </option>
                 <option>
                     <name>IlinkIcfFile</name>
-                    <state>$PROJ_DIR$/stm32f103xb_flash.icf</state>
+                    <state>$PROJ_DIR$/stm32f103xe_flash.icf</state>
                 </option>
                 <option>
                     <name>IlinkIcfFileSlave</name>
@@ -1078,6 +1079,12 @@
             <name>EWARM</name>
             <file>
                 <name>$PROJ_DIR$\startup_stm32f103xb.s</name>
+                <excluded>
+                    <configuration>NORMA-STM32F103R8T6</configuration>
+                </excluded>
+            </file>
+            <file>
+                <name>$PROJ_DIR$\startup_stm32f103xe.s</name>
             </file>
         </group>
         <group>
@@ -1176,6 +1183,33 @@
                 </file>
                 <file>
                     <name>$PROJ_DIR$\..\Src\reset\reset.h</name>
+                </file>
+            </group>
+            <group>
+                <name>storage</name>
+                <file>
+                    <name>$PROJ_DIR$\..\Src\storage\crc16_ccit.c</name>
+                </file>
+                <file>
+                    <name>$PROJ_DIR$\..\Src\storage\crc16_ccit.h</name>
+                </file>
+                <file>
+                    <name>$PROJ_DIR$\..\Src\storage\flash.c</name>
+                </file>
+                <file>
+                    <name>$PROJ_DIR$\..\Src\storage\flash.h</name>
+                </file>
+                <file>
+                    <name>$PROJ_DIR$\..\Src\storage\flash_storage.c</name>
+                </file>
+                <file>
+                    <name>$PROJ_DIR$\..\Src\storage\flash_storage.h</name>
+                </file>
+                <file>
+                    <name>$PROJ_DIR$\..\Src\storage\storage.c</name>
+                </file>
+                <file>
+                    <name>$PROJ_DIR$\..\Src\storage\storage.h</name>
                 </file>
             </group>
             <group>
