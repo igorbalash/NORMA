@@ -261,6 +261,12 @@ void taskFunc_superloop(void const* argument)
 		}
 	}
 
+	// Вывод версии ПО
+	#ifdef ON_DEBUG_MESSAGE
+		snprintf(debug_buf, sizeof(debug_buf), "FW: %d.%d.%d.%d\r\n", PRODUCT_ID, PRODUCT_VERSION, PRODUCT_VARIANT, PRODUCT_HARD);
+		HAL_UART_Transmit(&huart1, (uint8_t*)debug_buf, strlen(debug_buf), 500);
+	#endif
+
 	while(1)
 	{
 		// Цикл проверки внешних напряжений
@@ -323,7 +329,7 @@ static void storage_backup_loop(void)
 				}
 
 				#ifdef ON_DEBUG_MESSAGE
-				snprintf(debug_buf, sizeof(debug_buf), "state_UpMotor: %d, state_DownMotor: %d, state_SideMotor: %d, nearby_panel_state: %d\r\n", motorState.state_UpMotor, motorState.state_DownMotor, motorState.state_SideMotor, globalVars.gvar_nearby_panel_state);
+					snprintf(debug_buf, sizeof(debug_buf), "state_UpMotor: %d, state_DownMotor: %d, state_SideMotor: %d, nearby_panel_state: %d\r\n", motorState.state_UpMotor, motorState.state_DownMotor, motorState.state_SideMotor, globalVars.gvar_nearby_panel_state);
 					HAL_UART_Transmit(&huart1, (uint8_t*)debug_buf, strlen(debug_buf), 500);
 				#endif
 		}
