@@ -33,7 +33,7 @@ Author: Unic-Lab <https://unic-lab.ru/>
 
 //===================================================================================
 
-#define CHECK_EXT_VOLTAGE_PERIOD_MS				10000
+#define CHECK_EXT_VOLTAGE_PERIOD_MS				60000
 #define MOTOR_MOVING_INDICATION_PERIOD_MS		500
 #define CURRENT_DETECT_DELAY_MS					300
 #define BUTTONS_ANTI_BOUNCE_MS					100
