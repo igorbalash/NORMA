@@ -11,4 +11,6 @@ Author: Unic-Lab <https://unic-lab.ru/>
 
 void clock_system_init(void);
 
+//===================================================================================
+
 #endif // _CLOCK_SYSTEM_H_

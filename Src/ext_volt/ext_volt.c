@@ -14,11 +14,17 @@ Author: Unic-Lab <https://unic-lab.ru/>
 #define EXT_VOLT_CNT					2
 #define VOLT_DATA_SAMPLE_SIZE			16
 
-#define DIODE_FORWARD_VOLTAGE_V			0.28f
+#if (PRODUCT_HARD == 1)
+	#define DIODE_FORWARD_VOLTAGE_V		0.28f
+#elif (PRODUCT_HARD == 2)
+	#define DIODE_FORWARD_VOLTAGE_V		0.14f
+#else
+	#error "UNKNOWN PRODUCT_HARD!"
+#endif
 
 #define ADC_REF_INT_VOLTAGE_V			1.2f
 #define ADC_MAX_VAL						4095
-#define ADC_MIN_VOLTAGE_V				DIODE_FORWARD_VOLTAGE_V
+#define ADC_MIN_VOLTAGE_V				2.4f																			// для работы АЦП нужно мин 2.4В на VDDA
 
 //===================================================================================
 

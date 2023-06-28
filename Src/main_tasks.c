@@ -21,9 +21,10 @@ Author: Unic-Lab <https://unic-lab.ru/>
 #include "nearby_panel.h"
 #include "actuators.h"
 #include "buttons.h"
+#include "flash_storage.h"
 
 #ifdef ON_DEBUG_MESSAGE
-	#include "usart.h"
+	#include "debug.h"
 	#include "string.h"
 	#include <stdio.h>
 
@@ -32,23 +33,24 @@ Author: Unic-Lab <https://unic-lab.ru/>
 
 //===================================================================================
 
-#define CHECK_EXT_VOLTAGE_PERIOD_MS				10000
-#define MOTOR_MOVING_INDICATION_PERIOD_MS		500
-#define CURRENT_DETECT_DELAY_MS					300
-#define BUTTONS_ANTI_BOUNCE_MS					100
+#define CHECK_EXT_VOLTAGE_PERIOD_MS				60000																	// период измерения внешнего напряжения
+#define MOTOR_MOVING_INDICATION_PERIOD_MS		500																		// период индикации движущихся актуаторов
+#define CURRENT_DETECT_DELAY_MS					300																		// задержка перед измерением тока после запуска процесса
+#define BUTTONS_ANTI_BOUNCE_MS					100																		// задержка для устранения дребезга кнопок
 
 //===================================================================================
 
 typedef enum {
 	READY = 0,
-	RUNNING
+	RUNNING,
+	WAITING
 } ProcessState_t;
 
 typedef enum {
 	PULL_DOWN_POS = 0,
 	PULL_UP_POS,
 	MOVING_POS,
-	NEUTRAL_POS																											// DEL: only for debug
+	NEUTRAL_POS
 } MotorPosition_t;
 
 typedef enum {
@@ -62,7 +64,7 @@ typedef enum {
 	SIDE_MOTOR_NULL_CURRENT_ERROR
 } ErrorsType_t;
 
-static ProcessState_t check_ext_voltage_loop(void);
+static ProcessState_t check_ext_voltage_loop(uint32_t meas_delay_ms);
 static ErrorsType_t check_device_errors(void);
 static void error_indication_loop(ErrorsType_t error_type);
 static void motor_state_indication_loop(void);
@@ -71,6 +73,7 @@ static void motor_control_loop(void);
 static void current_sense_res_loop(void);
 static void timer_control_loop(void);
 static void buttons_control_loop(void);
+static void storage_backup_loop(void);
 
 //===================================================================================
 
@@ -104,11 +107,15 @@ typedef struct {
 	MotorPosition_t state_UpMotor;
 	MotorPosition_t state_DownMotor;
 	MotorPosition_t state_SideMotor;
+	MotorPosition_t state_UpMotorInFlash;
+	MotorPosition_t state_DownMotorInFlash;
+	MotorPosition_t state_SideMotorInFlash;
 } motorState_t;
 
 typedef struct {
 	PanelType_t gvar_panel_type;
 	NearbyPanelState_t gvar_nearby_panel_state;
+	NearbyPanelState_t gvar_nearby_panel_state_InFlash;
 } globalVars_t;
 
 //===================================================================================
@@ -145,13 +152,17 @@ globalErrors_t globalErrors = {
 motorState_t motorState = {
 	.state_UpMotor = PULL_DOWN_POS,
 	.state_DownMotor = PULL_DOWN_POS,
-	.state_SideMotor = PULL_DOWN_POS
+	.state_SideMotor = PULL_DOWN_POS,
+	.state_UpMotorInFlash = PULL_DOWN_POS,
+	.state_DownMotorInFlash = PULL_DOWN_POS,
+	.state_SideMotorInFlash = PULL_DOWN_POS
 };
 
 // структура глобальных переменных
 globalVars_t globalVars = {
 	.gvar_panel_type = COMMON,																							// тип панели, управляемой ПО
-	.gvar_nearby_panel_state = PANNEL_NO_CONNECT																		// состояние соседней панели
+	.gvar_nearby_panel_state = PANNEL_NO_CONNECT,																		// состояние соседней панели
+ 	.gvar_nearby_panel_state_InFlash = PANNEL_NO_CONNECT
 };
 
 //===================================================================================
@@ -221,15 +232,16 @@ void taskFunc_superloop(void const* argument)
 	// Определение типа панели
 	globalVars.gvar_panel_type = panel_type_get_type();
 
-	// Чтение из Flash текущего состояния актуаторов
-	// Обновляем состояния
-//	motorState.state_SideMotor = ;
-//	motorState.state_UpMotor = ;
-//	motorState.state_DownMotor = ;
-//	globalVars.gvar_nearby_panel_state = ;
+	//	Чтение состояний акутаторов и наличия соседней панели из хранилища
+	if (true == flash_storage_restore((uint8_t*)&motorState.state_UpMotorInFlash, (uint8_t*)&motorState.state_DownMotorInFlash, (uint8_t*)&motorState.state_SideMotorInFlash, (uint8_t*)&globalVars.gvar_nearby_panel_state_InFlash)) {
+		motorState.state_UpMotor = motorState.state_UpMotorInFlash;
+		motorState.state_DownMotor = motorState.state_DownMotorInFlash;
+		motorState.state_SideMotor = motorState.state_SideMotorInFlash;
+		globalVars.gvar_nearby_panel_state = globalVars.gvar_nearby_panel_state_InFlash;
+	}
 
 	// Проверка внешних напряжений
-	while (check_ext_voltage_loop() != READY) {};
+	while (check_ext_voltage_loop(0) != READY) {};
 
 	// Проверка условия необходимости автоматического выдвижения актуаторов
 	// Если актуаторы до перезагрузки или пропажи питания не были выдвинуты, то планируем их выдвинуть автоматически
@@ -249,10 +261,17 @@ void taskFunc_superloop(void const* argument)
 		}
 	}
 
+	// Вывод версии ПО
+	#ifdef ON_DEBUG_MESSAGE
+		snprintf(debug_buf, sizeof(debug_buf), "FW: %d.%d.%d.%d\r\n", PRODUCT_ID, PRODUCT_VERSION, PRODUCT_VARIANT, PRODUCT_HARD);
+		HAL_UART_Transmit(&huart1, (uint8_t*)debug_buf, strlen(debug_buf), 500);
+	#endif
+
 	while(1)
 	{
 		// Цикл проверки внешних напряжений
-		check_ext_voltage_loop();
+		// Задержка перед измерением в 3 сек нужна, т.к. после отключения внешнего реле на reserve входе есть напряжение разряжаемых конденсаторов VND5050
+		check_ext_voltage_loop(3000);
 
 		// Проверка наличия ошибок
 		ErrorsType_t error_type = check_device_errors();
@@ -278,7 +297,7 @@ void taskFunc_superloop(void const* argument)
 		current_sense_res_loop();
 
 		// Цикл сохранения во Flash состояний моторов
-		// Если они все не в движении и какой-то изменил свое состояние - пишем во Flash
+		storage_backup_loop();
 
 		// Цикл индикации состояния моторов
 		motor_state_indication_loop();
@@ -292,6 +311,30 @@ void taskFunc_superloop(void const* argument)
 
 //===================================================================================
 
+static void storage_backup_loop(void)
+{
+	// Если актуаторы не в движении сохраняем состояния во Flash при необходимости
+	if ((MOVING_POS != motorState.state_UpMotor) && (MOVING_POS != motorState.state_DownMotor) && (MOVING_POS != motorState.state_SideMotor)) {
+		if ((motorState.state_UpMotorInFlash != motorState.state_UpMotor) ||
+			(motorState.state_DownMotorInFlash != motorState.state_DownMotor) ||
+			(motorState.state_SideMotorInFlash != motorState.state_SideMotor) ||
+			(globalVars.gvar_nearby_panel_state_InFlash != globalVars.gvar_nearby_panel_state)) {
+
+				// При успешной записи во Flash менеям состояния глобальных переменных
+				if (true == flash_storage_backup(motorState.state_UpMotor, motorState.state_DownMotor, motorState.state_SideMotor, globalVars.gvar_nearby_panel_state)) {
+					motorState.state_UpMotorInFlash = motorState.state_UpMotor;
+					motorState.state_DownMotorInFlash = motorState.state_DownMotor;
+					motorState.state_SideMotorInFlash = motorState.state_SideMotor;
+					globalVars.gvar_nearby_panel_state_InFlash = globalVars.gvar_nearby_panel_state;
+				}
+
+				#ifdef ON_DEBUG_MESSAGE
+					snprintf(debug_buf, sizeof(debug_buf), "state_UpMotor: %d, state_DownMotor: %d, state_SideMotor: %d, nearby_panel_state: %d\r\n", motorState.state_UpMotor, motorState.state_DownMotor, motorState.state_SideMotor, globalVars.gvar_nearby_panel_state);
+					HAL_UART_Transmit(&huart1, (uint8_t*)debug_buf, strlen(debug_buf), 500);
+				#endif
+		}
+	}
+}
 
 static void buttons_control_loop(void)
 {
@@ -553,7 +596,7 @@ static void motor_control_loop(void)
 	if (true == globalFlags.flag_isNeedApplyForceMotor) {
 		globalFlags.flag_isNeedApplyForceMotor = false;
 		// Если актуаторы не в движении, запускаем процесс
-		if ((MOVING_POS != motorState.state_UpMotor) && (MOVING_POS != motorState.state_DownMotor) && (MOVING_POS != motorState.state_SideMotor)) {
+		if ((MOVING_POS != motorState.state_UpMotor) && (MOVING_POS != motorState.state_DownMotor) && (MOVING_POS != motorState.state_SideMotor) && DEAFULT_STATE == loop_state) {
 			if (COMMON == globalVars.gvar_panel_type) {
 				if ((PULL_UP_POS != motorState.state_UpMotor) || (PULL_UP_POS != motorState.state_DownMotor)) {
 					flag_isConditionTrue = true;
@@ -574,7 +617,7 @@ static void motor_control_loop(void)
 	} else if (true == globalFlags.flag_isNeedRemoveForceMotor) {
 		globalFlags.flag_isNeedRemoveForceMotor = false;
 		// Если актуатор не в движении и не внизу, запускаем процесс
-		if ((MOVING_POS != motorState.state_UpMotor) && (MOVING_POS != motorState.state_DownMotor) && (MOVING_POS != motorState.state_SideMotor)) {
+		if ((MOVING_POS != motorState.state_UpMotor) && (MOVING_POS != motorState.state_DownMotor) && (MOVING_POS != motorState.state_SideMotor) && DEAFULT_STATE == loop_state) {
 			if (COMMON == globalVars.gvar_panel_type) {
 				if ((PULL_DOWN_POS != motorState.state_UpMotor) || (PULL_DOWN_POS != motorState.state_DownMotor)) {
 					flag_isConditionTrue = true;
@@ -846,11 +889,13 @@ static void motor_control_loop(void)
 			actuators_stop_move(DOWN_ACTUATOR);
 			actuators_stop_move(SIDE_ACTUATOR);
 
-			// !!!!!!!! Вычитываем из Flash предыдущие состояния и записываем в глобальные переменные
-			// !!!!!!!! Пока нет Falsh - устанавливаем в Нейтральное положение, чтобы можно было после СТОП в любую сторону ехать
+			// Устанавливаем в нейтральное положение, чтобы можно было после СТОП в любую сторону ехать
 			motorState.state_UpMotor = NEUTRAL_POS;
 			motorState.state_DownMotor = NEUTRAL_POS;
-			motorState.state_SideMotor = NEUTRAL_POS;
+
+			if (COMMON != globalVars.gvar_panel_type) {
+				motorState.state_SideMotor = NEUTRAL_POS;
+			}
 
 			flag_isDownMotorWasStarted = false;
 
@@ -862,10 +907,16 @@ static void motor_control_loop(void)
 			actuators_main_power_off(globalFlags.flag_isNeedRevPolMainMotorPwr);
 			// Останавливаем сэмплирование каналов current sense resistors
 			current_sense_stop_measure();
+			// Сбрасываем флаг
+			globalFlags.flag_isAdcСonvReady = false;
 			// Освобождаем доступ к ADC, возвращая mutex
 			osMutexRelease(adcUse_MutexHandle);
 			// Меняем стадию
 			loop_state = DEAFULT_STATE;
+
+			#ifdef ON_DEBUG_MESSAGE
+				HAL_UART_Transmit(&huart1, "MUTEX-Release [motor_control]\r\n", strlen("MUTEX-Release [motor_control]\r\n"), 500);
+			#endif
 			break;
 		default:
 			break;
@@ -878,7 +929,8 @@ static void check_nearby_panel_loop(void)
 	#define DISCONN_NEARBY_PANEL_PERIOD_MS		(MOTOR_TIMEOUT_MS / PANEL_STATE_REPETITIONS_CNT)
 	#define CONN_NEARBY_PANEL_PERIOD_MS			125
 
-	static uint8_t panel_state_bits = ~PANNEL_NO_CONNECT + 1;
+	// Начальное значение 1 для того, чтобы новое состояние обновилось не сразу, а в течении PANEL_STATE_REPETITIONS_CNT
+	static uint8_t panel_state_bits = 1;
 	static uint32_t prev_time_ms = 0U - CONN_NEARBY_PANEL_PERIOD_MS;
 	uint32_t check_period_ms;
 
@@ -1072,7 +1124,7 @@ static void error_indication_loop(ErrorsType_t error_type)
 	}
 }
 
-static ProcessState_t check_ext_voltage_loop(void)
+static ProcessState_t check_ext_voltage_loop(uint32_t meas_delay_ms)
 {
 	static ProcessState_t loop_state = READY;
 	static uint32_t prev_time_ms = 0U - CHECK_EXT_VOLTAGE_PERIOD_MS;
@@ -1088,12 +1140,20 @@ static ProcessState_t check_ext_voltage_loop(void)
 				// Защищаем доступ к ADC с помощью mutex
 				osStatus ret_stat = osMutexWait(adcUse_MutexHandle, 0);
 
-				// Если доступ получен - выполняем цикл
+				// Если доступ получен - запускаем стадию задержки перед измерением
 				if (ret_stat == osOK) {
-					loop_state = RUNNING;
-					// Запускаем измерение
-					ext_volt_start_measure();
+					loop_state = WAITING;
+					#ifdef ON_DEBUG_MESSAGE
+						HAL_UART_Transmit(&huart1, "MUTEX-Get [voltage_loop]\r\n", strlen("MUTEX-Get [voltage_loop]\r\n"), 500);
+					#endif
 				}
+			}
+			break;
+		case WAITING:
+			if (curr_time_ms - prev_time_ms >= meas_delay_ms) {
+				loop_state = RUNNING;
+				// Запускаем измерение
+				ext_volt_start_measure();
 			}
 			break;
 		case RUNNING:
@@ -1146,6 +1206,10 @@ static ProcessState_t check_ext_voltage_loop(void)
 
 				// Освобождаем доступ к ADC, возвращая mutex
 				osMutexRelease(adcUse_MutexHandle);
+
+				#ifdef ON_DEBUG_MESSAGE
+					HAL_UART_Transmit(&huart1, "MUTEX-Release [voltage_loop]\r\n", strlen("MUTEX-Release [voltage_loop]\r\n"), 500);
+				#endif
 			}
 			break;
 		default:
