@@ -104,14 +104,14 @@ enum storage_status storage_write( struct DataRecord *rec )
 	uint32_t pos = head_addr % _FLASH_PAGE_SIZE;
 
 	#ifdef ON_DEBUG_MESSAGE
-		snprintf(debug_buf, sizeof(debug_buf), "current offset in page: %d\n", pos);
+		snprintf(debug_buf, sizeof(debug_buf), "Current offset in current page: %d\n", pos);
 		HAL_UART_Transmit(&huart1, (uint8_t*)debug_buf, strlen(debug_buf), 500);
 	#endif
 
 	uint32_t next_sector = head_addr - (head_addr % _FLASH_SECTOR_SIZE) + _FLASH_SECTOR_SIZE;
 
 	#ifdef ON_DEBUG_MESSAGE
-		snprintf(debug_buf, sizeof(debug_buf), "next_sector: %d\n", next_sector);
+		snprintf(debug_buf, sizeof(debug_buf), "Next free sector: %X\n", next_sector);
 		HAL_UART_Transmit(&huart1, (uint8_t*)debug_buf, strlen(debug_buf), 500);
 	#endif
 
@@ -120,7 +120,8 @@ enum storage_status storage_write( struct DataRecord *rec )
 		flash_sector_erase(head_addr);
 
 		#ifdef ON_DEBUG_MESSAGE
-			HAL_UART_Transmit(&huart1, "We need to erase current sector\n\n", strlen("We need to erase current sector\n\n"), 500);
+			snprintf(debug_buf, sizeof(debug_buf), "We need to erase current sector: %X\n", head_addr);
+			HAL_UART_Transmit(&huart1, (uint8_t*)debug_buf, strlen(debug_buf), 500);
 		#endif
 	}
 
@@ -233,7 +234,7 @@ enum storage_status storage_get_tail( struct DataRecord *rec, uint32_t *tail_add
 			uint16_t crc_calc = crc16_ccit((const uint8_t *) buf, rec->data_size, 0);
 
 			#ifdef ON_DEBUG_MESSAGE
-				snprintf(debug_buf, sizeof(debug_buf), "Magic @ %d: crc = %d, crc_calc = %d, ctr = %d\n", addr, crc, crc_calc, ctr);
+				snprintf(debug_buf, sizeof(debug_buf), "Magic @ %X: crc = %X, crc_calc = %X, ctr = %d\n", addr, crc, crc_calc, ctr);
 				HAL_UART_Transmit(&huart1, (uint8_t*)debug_buf, strlen(debug_buf), 500);
 			#endif
 
@@ -254,7 +255,7 @@ enum storage_status storage_get_tail( struct DataRecord *rec, uint32_t *tail_add
 	}
 
 	#ifdef ON_DEBUG_MESSAGE
-		snprintf(debug_buf, sizeof(debug_buf), "current MAX address is %d\n", max_ctr_addr);
+	snprintf(debug_buf, sizeof(debug_buf), "Current MAX address: %X, MAX ctr: %d\n", max_ctr_addr, max_ctr);
 		HAL_UART_Transmit(&huart1, (uint8_t*)debug_buf, strlen(debug_buf), 500);
 	#endif
 

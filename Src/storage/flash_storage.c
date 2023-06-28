@@ -10,12 +10,12 @@ Author: Unic-Lab <https://unic-lab.ru/>
 
 //===================================================================================
 
-#define STORAGE_SIZE_SECTORS			2																				// 2 страницы flash выделяем для хранения данных
+#define STORAGE_SIZE_SECTORS			4																				// 4 страницы flash выделяем для хранения данных
 
 #if (PRODUCT_HARD == 1)
-	#define STORAGE_START_ADDRESS		0x0800F800
+	#define STORAGE_START_ADDRESS		0x0800F000																		// 1 стр. 1kB
 #elif (PRODUCT_HARD == 2)
-	#define STORAGE_START_ADDRESS		0x0803F000
+	#define STORAGE_START_ADDRESS		0x0803E000																		// 1 стр. 2kB
 #else
 	#error "UNKNOWN PRODUCT_HARD!"
 #endif

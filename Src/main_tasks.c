@@ -232,9 +232,6 @@ void taskFunc_superloop(void const* argument)
 	// Определение типа панели
 	globalVars.gvar_panel_type = panel_type_get_type();
 
-	// Инициализация хранилища
-	flash_storage_init();
-
 	//	Чтение состояний акутаторов и наличия соседней панели из хранилища
 	if (true == flash_storage_restore((uint8_t*)&motorState.state_UpMotorInFlash, (uint8_t*)&motorState.state_DownMotorInFlash, (uint8_t*)&motorState.state_SideMotorInFlash, (uint8_t*)&globalVars.gvar_nearby_panel_state_InFlash)) {
 		motorState.state_UpMotor = motorState.state_UpMotorInFlash;
@@ -588,7 +585,7 @@ static void motor_control_loop(void)
 	if (true == globalFlags.flag_isNeedApplyForceMotor) {
 		globalFlags.flag_isNeedApplyForceMotor = false;
 		// Если актуаторы не в движении, запускаем процесс
-		if ((MOVING_POS != motorState.state_UpMotor) && (MOVING_POS != motorState.state_DownMotor) && (MOVING_POS != motorState.state_SideMotor)) {
+		if ((MOVING_POS != motorState.state_UpMotor) && (MOVING_POS != motorState.state_DownMotor) && (MOVING_POS != motorState.state_SideMotor) && DEAFULT_STATE == loop_state) {
 			if (COMMON == globalVars.gvar_panel_type) {
 				if ((PULL_UP_POS != motorState.state_UpMotor) || (PULL_UP_POS != motorState.state_DownMotor)) {
 					flag_isConditionTrue = true;
@@ -609,7 +606,7 @@ static void motor_control_loop(void)
 	} else if (true == globalFlags.flag_isNeedRemoveForceMotor) {
 		globalFlags.flag_isNeedRemoveForceMotor = false;
 		// Если актуатор не в движении и не внизу, запускаем процесс
-		if ((MOVING_POS != motorState.state_UpMotor) && (MOVING_POS != motorState.state_DownMotor) && (MOVING_POS != motorState.state_SideMotor)) {
+		if ((MOVING_POS != motorState.state_UpMotor) && (MOVING_POS != motorState.state_DownMotor) && (MOVING_POS != motorState.state_SideMotor) && DEAFULT_STATE == loop_state) {
 			if (COMMON == globalVars.gvar_panel_type) {
 				if ((PULL_DOWN_POS != motorState.state_UpMotor) || (PULL_DOWN_POS != motorState.state_DownMotor)) {
 					flag_isConditionTrue = true;
@@ -905,6 +902,10 @@ static void motor_control_loop(void)
 			osMutexRelease(adcUse_MutexHandle);
 			// Меняем стадию
 			loop_state = DEAFULT_STATE;
+
+			#ifdef ON_DEBUG_MESSAGE
+				HAL_UART_Transmit(&huart1, "MUTEX-Release [motor_control]\r\n", strlen("MUTEX-Release [motor_control]\r\n"), 500);
+			#endif
 			break;
 		default:
 			break;
@@ -1131,6 +1132,9 @@ static ProcessState_t check_ext_voltage_loop(uint32_t meas_delay_ms)
 				// Если доступ получен - запускаем стадию задержки перед измерением
 				if (ret_stat == osOK) {
 					loop_state = WAITING;
+					#ifdef ON_DEBUG_MESSAGE
+						HAL_UART_Transmit(&huart1, "MUTEX-Get [voltage_loop]\r\n", strlen("MUTEX-Get [voltage_loop]\r\n"), 500);
+					#endif
 				}
 			}
 			break;
@@ -1191,6 +1195,10 @@ static ProcessState_t check_ext_voltage_loop(uint32_t meas_delay_ms)
 
 				// Освобождаем доступ к ADC, возвращая mutex
 				osMutexRelease(adcUse_MutexHandle);
+
+				#ifdef ON_DEBUG_MESSAGE
+					HAL_UART_Transmit(&huart1, "MUTEX-Release [voltage_loop]\r\n", strlen("MUTEX-Release [voltage_loop]\r\n"), 500);
+				#endif
 			}
 			break;
 		default:
