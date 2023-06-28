@@ -42,7 +42,8 @@ Author: Unic-Lab <https://unic-lab.ru/>
 
 typedef enum {
 	READY = 0,
-	RUNNING
+	RUNNING,
+	WAITING
 } ProcessState_t;
 
 typedef enum {
@@ -63,7 +64,7 @@ typedef enum {
 	SIDE_MOTOR_NULL_CURRENT_ERROR
 } ErrorsType_t;
 
-static ProcessState_t check_ext_voltage_loop(void);
+static ProcessState_t check_ext_voltage_loop(uint32_t meas_delay_ms);
 static ErrorsType_t check_device_errors(void);
 static void error_indication_loop(ErrorsType_t error_type);
 static void motor_state_indication_loop(void);
@@ -243,7 +244,7 @@ void taskFunc_superloop(void const* argument)
 	}
 
 	// Проверка внешних напряжений
-	while (check_ext_voltage_loop() != READY) {};
+	while (check_ext_voltage_loop(0) != READY) {};
 
 	// Проверка условия необходимости автоматического выдвижения актуаторов
 	// Если актуаторы до перезагрузки или пропажи питания не были выдвинуты, то планируем их выдвинуть автоматически
@@ -266,7 +267,8 @@ void taskFunc_superloop(void const* argument)
 	while(1)
 	{
 		// Цикл проверки внешних напряжений
-		check_ext_voltage_loop();
+		// Задержка перед измерением в 3 сек нужна, т.к. после отключения внешнего реле на reserve входе есть напряжение разряжаемых конденсаторов VND5050
+		check_ext_voltage_loop(3000);
 
 		// Проверка наличия ошибок
 		ErrorsType_t error_type = check_device_errors();
@@ -1110,7 +1112,7 @@ static void error_indication_loop(ErrorsType_t error_type)
 	}
 }
 
-static ProcessState_t check_ext_voltage_loop(void)
+static ProcessState_t check_ext_voltage_loop(uint32_t meas_delay_ms)
 {
 	static ProcessState_t loop_state = READY;
 	static uint32_t prev_time_ms = 0U - CHECK_EXT_VOLTAGE_PERIOD_MS;
@@ -1126,12 +1128,17 @@ static ProcessState_t check_ext_voltage_loop(void)
 				// Защищаем доступ к ADC с помощью mutex
 				osStatus ret_stat = osMutexWait(adcUse_MutexHandle, 0);
 
-				// Если доступ получен - выполняем цикл
+				// Если доступ получен - запускаем стадию задержки перед измерением
 				if (ret_stat == osOK) {
-					loop_state = RUNNING;
-					// Запускаем измерение
-					ext_volt_start_measure();
+					loop_state = WAITING;
 				}
+			}
+			break;
+		case WAITING:
+			if (curr_time_ms - prev_time_ms >= meas_delay_ms) {
+				loop_state = RUNNING;
+				// Запускаем измерение
+				ext_volt_start_measure();
 			}
 			break;
 		case RUNNING:
