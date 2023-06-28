@@ -321,6 +321,11 @@ static void storage_backup_loop(void)
 					motorState.state_SideMotorInFlash = motorState.state_SideMotor;
 					globalVars.gvar_nearby_panel_state_InFlash = globalVars.gvar_nearby_panel_state;
 				}
+
+				#ifdef ON_DEBUG_MESSAGE
+				snprintf(debug_buf, sizeof(debug_buf), "state_UpMotor: %d, state_DownMotor: %d, state_SideMotor: %d, nearby_panel_state: %d\r\n", motorState.state_UpMotor, motorState.state_DownMotor, motorState.state_SideMotor, globalVars.gvar_nearby_panel_state);
+					HAL_UART_Transmit(&huart1, (uint8_t*)debug_buf, strlen(debug_buf), 500);
+				#endif
 		}
 	}
 }

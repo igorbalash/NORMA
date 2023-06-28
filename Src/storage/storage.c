@@ -234,8 +234,8 @@ enum storage_status storage_get_tail( struct DataRecord *rec, uint32_t *tail_add
 			uint16_t crc_calc = crc16_ccit((const uint8_t *) buf, rec->data_size, 0);
 
 			#ifdef ON_DEBUG_MESSAGE
-				snprintf(debug_buf, sizeof(debug_buf), "Magic @ %X: crc = %X, crc_calc = %X, ctr = %d\n", addr, crc, crc_calc, ctr);
-				HAL_UART_Transmit(&huart1, (uint8_t*)debug_buf, strlen(debug_buf), 500);
+//				snprintf(debug_buf, sizeof(debug_buf), "Magic @ %X: crc = %X, crc_calc = %X, ctr = %d\n", addr, crc, crc_calc, ctr);
+//				HAL_UART_Transmit(&huart1, (uint8_t*)debug_buf, strlen(debug_buf), 500);
 			#endif
 
 			if ( crc == crc_calc ) {
@@ -248,15 +248,15 @@ enum storage_status storage_get_tail( struct DataRecord *rec, uint32_t *tail_add
 			} else {
 				crc_is_ok = 0;
 				#ifdef ON_DEBUG_MESSAGE
-					HAL_UART_Transmit(&huart1, "CRC mismatch - continuing\n", strlen("CRC mismatch - continuing\n"), 500);
+//					HAL_UART_Transmit(&huart1, "CRC mismatch - continuing\n", strlen("CRC mismatch - continuing\n"), 500);
 				#endif
 			}
 		}
 	}
 
 	#ifdef ON_DEBUG_MESSAGE
-	snprintf(debug_buf, sizeof(debug_buf), "Current MAX address: %X, MAX ctr: %d\n", max_ctr_addr, max_ctr);
-		HAL_UART_Transmit(&huart1, (uint8_t*)debug_buf, strlen(debug_buf), 500);
+//		snprintf(debug_buf, sizeof(debug_buf), "Current MAX address: %X, MAX ctr: %d\n", max_ctr_addr, max_ctr);
+//		HAL_UART_Transmit(&huart1, (uint8_t*)debug_buf, strlen(debug_buf), 500);
 	#endif
 
 	if ( found ) {
