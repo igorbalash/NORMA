@@ -19,6 +19,6 @@ Author: Unic-Lab <https://unic-lab.ru/>
 #define MOTOR_DOWN_MOV_DELAY_MS			3000																			// задержка перед выдвижение нижнего актуатора после начала движения верхнего, мСек
 
 #define MIN_EXT_VOLTAGE_V				9.0f																			// мин. внешнее напряжение, В
-#define MAX_EXT_VOLTAGE_V				13.0f																			// макс. внешнее напряжение, В
+#define MAX_EXT_VOLTAGE_V				15.0f																			// макс. внешнее напряжение, В
 
 #endif // _LEDS_H_
