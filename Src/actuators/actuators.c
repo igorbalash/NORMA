@@ -11,6 +11,51 @@ Author: Unic-Lab <https://unic-lab.ru/>
 
 //===================================================================================
 
+static void actuators_switch_up(ActuatorType_t act_type)
+{
+	switch (act_type)
+	{
+		case UP_ACTUATOR:
+			HAL_GPIO_WritePin(UP_MOTOR_SWITCH_PORT, UP_MOTOR_SWITCH_PIN, UP_MOTOR_SWITCH_DIRECT);
+			break;
+		case DOWN_ACTUATOR:
+			HAL_GPIO_WritePin(DOWN_MOTOR_SWITCH_PORT, DOWN_MOTOR_SWITCH_PIN, DOWN_MOTOR_SWITCH_DIRECT);
+			break;
+		case SIDE_ACTUATOR:
+			HAL_GPIO_WritePin(SIDE_1_MOTOR_SWITCH_PORT, SIDE_1_MOTOR_SWITCH_PIN, SIDE_1_MOTOR_SWITCH_DIRECT);
+			break;
+		default:
+			break;
+	}
+}
+
+static void actuators_switch_down(ActuatorType_t act_type)
+{
+	switch (act_type)
+	{
+		case UP_ACTUATOR:
+			HAL_GPIO_WritePin(UP_MOTOR_SWITCH_PORT, UP_MOTOR_SWITCH_PIN, UP_MOTOR_SWITCH_REVERSE);
+			break;
+		case DOWN_ACTUATOR:
+			HAL_GPIO_WritePin(DOWN_MOTOR_SWITCH_PORT, DOWN_MOTOR_SWITCH_PIN, DOWN_MOTOR_SWITCH_REVERSE);
+			break;
+		case SIDE_ACTUATOR:
+			HAL_GPIO_WritePin(SIDE_1_MOTOR_SWITCH_PORT, SIDE_1_MOTOR_SWITCH_PIN, SIDE_1_MOTOR_SWITCH_REVERSE);
+			break;
+		default:
+			break;
+	}
+}
+
+static void actuators_main_power_on(bool is_need_reverse_polarity)
+{
+	if (false == is_need_reverse_polarity) {
+		HAL_GPIO_WritePin(MAIN_MOTOR_PWR_PORT, MAIN_MOTOR_PWR_PIN, MAIN_MOTOR_PWR_ON);
+	} else {
+		HAL_GPIO_WritePin(MAIN_MOTOR_PWR_PORT, MAIN_MOTOR_PWR_PIN, MAIN_MOTOR_PWR_OFF);
+	}
+}
+
 void actuators_init(void)
 {
 	GPIO_InitTypeDef GPIO_InitStruct = {0};
@@ -82,91 +127,96 @@ void actuators_init(void)
 	HAL_GPIO_Init(SIDE_1_MOTOR_SWITCH_PORT, &GPIO_InitStruct);
 }
 
-void actuators_start_move_up(ActuatorType_t act_type)
-{
-	switch (act_type)
-	{
-		case UP_ACTUATOR:
-			HAL_GPIO_WritePin(UP_MOTOR_PWR_PORT, UP_MOTOR_PWR_PIN, UP_MOTOR_PWR_OFF);
-			HAL_GPIO_WritePin(UP_MOTOR_SWITCH_PORT, UP_MOTOR_SWITCH_PIN, UP_MOTOR_SWITCH_DIRECT);
-			HAL_GPIO_WritePin(UP_MOTOR_PWR_PORT, UP_MOTOR_PWR_PIN, UP_MOTOR_PWR_ON);
-			break;
-		case DOWN_ACTUATOR:
-			HAL_GPIO_WritePin(DOWN_MOTOR_PWR_PORT, DOWN_MOTOR_PWR_PIN, DOWN_MOTOR_PWR_OFF);
-			HAL_GPIO_WritePin(DOWN_MOTOR_SWITCH_PORT, DOWN_MOTOR_SWITCH_PIN, DOWN_MOTOR_SWITCH_DIRECT);
-			HAL_GPIO_WritePin(DOWN_MOTOR_PWR_PORT, DOWN_MOTOR_PWR_PIN, DOWN_MOTOR_PWR_ON);
-			break;
-		case SIDE_ACTUATOR:
-			HAL_GPIO_WritePin(SIDE_1_MOTOR_PWR_PORT, SIDE_1_MOTOR_PWR_PIN, SIDE_1_MOTOR_PWR_OFF);
-			HAL_GPIO_WritePin(SIDE_1_MOTOR_SWITCH_PORT, SIDE_1_MOTOR_SWITCH_PIN, SIDE_1_MOTOR_SWITCH_DIRECT);
-			HAL_GPIO_WritePin(SIDE_1_MOTOR_PWR_PORT, SIDE_1_MOTOR_PWR_PIN, SIDE_1_MOTOR_PWR_ON);
-			break;
-		default:
-			break;
-	}
-}
-
-void actuators_start_move_down(ActuatorType_t act_type)
-{
-	switch (act_type)
-	{
-		case UP_ACTUATOR:
-			HAL_GPIO_WritePin(UP_MOTOR_PWR_PORT, UP_MOTOR_PWR_PIN, UP_MOTOR_PWR_OFF);
-			HAL_GPIO_WritePin(UP_MOTOR_SWITCH_PORT, UP_MOTOR_SWITCH_PIN, UP_MOTOR_SWITCH_REVERSE);
-			HAL_GPIO_WritePin(UP_MOTOR_PWR_PORT, UP_MOTOR_PWR_PIN, UP_MOTOR_PWR_ON);
-			break;
-		case DOWN_ACTUATOR:
-			HAL_GPIO_WritePin(DOWN_MOTOR_PWR_PORT, DOWN_MOTOR_PWR_PIN, DOWN_MOTOR_PWR_OFF);
-			HAL_GPIO_WritePin(DOWN_MOTOR_SWITCH_PORT, DOWN_MOTOR_SWITCH_PIN, DOWN_MOTOR_SWITCH_REVERSE);
-			HAL_GPIO_WritePin(DOWN_MOTOR_PWR_PORT, DOWN_MOTOR_PWR_PIN, DOWN_MOTOR_PWR_ON);
-			break;
-		case SIDE_ACTUATOR:
-			HAL_GPIO_WritePin(SIDE_1_MOTOR_PWR_PORT, SIDE_1_MOTOR_PWR_PIN, SIDE_1_MOTOR_PWR_OFF);
-			HAL_GPIO_WritePin(SIDE_1_MOTOR_SWITCH_PORT, SIDE_1_MOTOR_SWITCH_PIN, SIDE_1_MOTOR_SWITCH_REVERSE);
-			HAL_GPIO_WritePin(SIDE_1_MOTOR_PWR_PORT, SIDE_1_MOTOR_PWR_PIN, SIDE_1_MOTOR_PWR_ON);
-			break;
-		default:
-			break;
-	}
-}
-
-void actuators_stop_move(ActuatorType_t act_type)
-{
-	switch (act_type)
-	{
-		case UP_ACTUATOR:
-			HAL_GPIO_WritePin(UP_MOTOR_PWR_PORT, UP_MOTOR_PWR_PIN, UP_MOTOR_PWR_OFF);
-			HAL_GPIO_WritePin(UP_MOTOR_SWITCH_PORT, UP_MOTOR_SWITCH_PIN, UP_MOTOR_SWITCH_DIRECT);
-			break;
-		case DOWN_ACTUATOR:
-			HAL_GPIO_WritePin(DOWN_MOTOR_PWR_PORT, DOWN_MOTOR_PWR_PIN, DOWN_MOTOR_PWR_OFF);
-			HAL_GPIO_WritePin(DOWN_MOTOR_SWITCH_PORT, DOWN_MOTOR_SWITCH_PIN, DOWN_MOTOR_SWITCH_DIRECT);
-			break;
-		case SIDE_ACTUATOR:
-			HAL_GPIO_WritePin(SIDE_1_MOTOR_PWR_PORT, SIDE_1_MOTOR_PWR_PIN, SIDE_1_MOTOR_PWR_OFF);
-			HAL_GPIO_WritePin(SIDE_1_MOTOR_SWITCH_PORT, SIDE_1_MOTOR_SWITCH_PIN, SIDE_1_MOTOR_SWITCH_DIRECT);
-			break;
-		default:
-			break;
-	}
-}
-
-void actuators_main_power_on(bool is_need_reverse_polarity)
-{
-	if (false == is_need_reverse_polarity) {
-		HAL_GPIO_WritePin(MAIN_MOTOR_PWR_PORT, MAIN_MOTOR_PWR_PIN, MAIN_MOTOR_PWR_ON);
-	} else {
-		HAL_GPIO_WritePin(MAIN_MOTOR_PWR_PORT, MAIN_MOTOR_PWR_PIN, MAIN_MOTOR_PWR_OFF);
-	}
-}
-
 void actuators_main_power_off(bool is_need_reverse_polarity)
 {
+	// Снимаем питание с выходов VND5050AK-E на актуаторы
+	actuators_power_off(UP_ACTUATOR);
+	actuators_power_off(DOWN_ACTUATOR);
+	actuators_power_off(SIDE_ACTUATOR);
+
+	HAL_Delay(5);																										// Для VND5050AK-E (< 1ms)
+
 	if (false == is_need_reverse_polarity) {
 		HAL_GPIO_WritePin(MAIN_MOTOR_PWR_PORT, MAIN_MOTOR_PWR_PIN, MAIN_MOTOR_PWR_OFF);
 	} else {
 		HAL_GPIO_WritePin(MAIN_MOTOR_PWR_PORT, MAIN_MOTOR_PWR_PIN, MAIN_MOTOR_PWR_ON);
 	}
+
+	// Снимаем питание с катушек реле, путем коммутации актуаторов в направлении для движения "Вверх"
+	actuators_switch_up(UP_ACTUATOR);
+	actuators_switch_up(DOWN_ACTUATOR);
+	actuators_switch_up(SIDE_ACTUATOR);
+
+	HAL_Delay(30);																										// Для реле HF115F/012-2ZS4 (operate time 15ms max.)
+}
+
+void actuators_power_on(ActuatorType_t act_type)
+{
+	switch (act_type)
+	{
+		case UP_ACTUATOR:
+			HAL_GPIO_WritePin(UP_MOTOR_PWR_PORT, UP_MOTOR_PWR_PIN, UP_MOTOR_PWR_ON);
+			break;
+		case DOWN_ACTUATOR:
+			HAL_GPIO_WritePin(DOWN_MOTOR_PWR_PORT, DOWN_MOTOR_PWR_PIN, DOWN_MOTOR_PWR_ON);
+			break;
+		case SIDE_ACTUATOR:
+			HAL_GPIO_WritePin(SIDE_1_MOTOR_PWR_PORT, SIDE_1_MOTOR_PWR_PIN, SIDE_1_MOTOR_PWR_ON);
+			break;
+		default:
+			break;
+	}
+}
+
+void actuators_power_off(ActuatorType_t act_type)
+{
+	switch (act_type)
+	{
+		case UP_ACTUATOR:
+			HAL_GPIO_WritePin(UP_MOTOR_PWR_PORT, UP_MOTOR_PWR_PIN, UP_MOTOR_PWR_OFF);
+			break;
+		case DOWN_ACTUATOR:
+			HAL_GPIO_WritePin(DOWN_MOTOR_PWR_PORT, DOWN_MOTOR_PWR_PIN, DOWN_MOTOR_PWR_OFF);
+			break;
+		case SIDE_ACTUATOR:
+			HAL_GPIO_WritePin(SIDE_1_MOTOR_PWR_PORT, SIDE_1_MOTOR_PWR_PIN, SIDE_1_MOTOR_PWR_OFF);
+			break;
+		default:
+			break;
+	}
+}
+
+void actuators_prepare_move(Direction_t direction, bool is_need_reverse_polarity)
+{
+	// Снимаем питание с выходов VND5050AK-E на актуаторы
+	actuators_power_off(UP_ACTUATOR);
+	actuators_power_off(DOWN_ACTUATOR);
+	actuators_power_off(SIDE_ACTUATOR);
+
+	HAL_Delay(5);																										// Для VND5050AK-E (< 1ms)
+
+	switch (direction)
+	{
+		case UP_DIR:
+			// Коммутируем актуаторы в направлении для движения "Вверх"
+			actuators_switch_up(UP_ACTUATOR);
+			actuators_switch_up(DOWN_ACTUATOR);
+			actuators_switch_up(SIDE_ACTUATOR);
+			break;
+		case DOWN_DIR:
+			// Коммутируем актуаторы в направлении для движения "Вниз"
+			actuators_switch_down(UP_ACTUATOR);
+			actuators_switch_down(DOWN_ACTUATOR);
+			actuators_switch_down(SIDE_ACTUATOR);
+			break;
+		default:
+			break;
+	}
+
+	// Включаем общее питание
+	actuators_main_power_on(is_need_reverse_polarity);
+
+	HAL_Delay(30);																										// Для реле HF115F/012-2ZS4 (operate time 15ms max.)
 }
 
 //===================================================================================

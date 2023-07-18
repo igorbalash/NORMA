@@ -279,28 +279,35 @@ void taskFunc_superloop(void const* argument)
 		// Цикл индикации ошибки
 		error_indication_loop(error_type);
 
-		// Цикл обработки кнопок
-		buttons_control_loop();
+		// Если питание в допустимых пределах - управляем моторами, кнопками
+		if (true != globalErrors.error_ExtPowerError) {
+			// Цикл обработки кнопок
+			buttons_control_loop();
 
-		// Цикл проверки подключенности соседней панели (актуально только для обычной панели)
-		if (COMMON == globalVars.gvar_panel_type) {
-			check_nearby_panel_loop();
+			// Цикл проверки подключенности соседней панели (актуально только для обычной панели)
+			if (COMMON == globalVars.gvar_panel_type) {
+				check_nearby_panel_loop();
+			}
+
+			// Цикл управление моторами
+			motor_control_loop();
+
+			// Цикл управление таймерами для таймаутов
+			timer_control_loop();
+
+			// Цикл обработки данных с current sense resistors
+			current_sense_res_loop();
+
+			// Цикл сохранения во Flash состояний моторов
+			storage_backup_loop();
+
+			// Цикл индикации состояния моторов
+			motor_state_indication_loop();
+		} else {
+			globalFlags.flag_isNeedApplyForceMotor = false;
+			globalFlags.flag_isNeedRemoveForceMotor = false;
+			globalFlags.flag_isNeedStopAllMotor = false;
 		}
-
-		// Цикл управление моторами
-		motor_control_loop();
-
-		// Цикл управление таймерами для таймаутов
-		timer_control_loop();
-
-		// Цикл обработки данных с current sense resistors
-		current_sense_res_loop();
-
-		// Цикл сохранения во Flash состояний моторов
-		storage_backup_loop();
-
-		// Цикл индикации состояния моторов
-		motor_state_indication_loop();
 
 		reset_iwdg_refresh();
 	}
@@ -655,12 +662,12 @@ static void motor_control_loop(void)
 			if (ret_stat == osOK) {
 				// Меняем состояние мотора UP
 				motorState.state_UpMotor = MOVING_POS;
+				// Коммутируем актуаторы в направлении для движения "Вверх"
+				actuators_prepare_move(UP_DIR, globalFlags.flag_isNeedRevPolMainMotorPwr);
 				// Запускаем сэмплирование каналов current sense resistors
 				current_sense_start_measure();
-				// Включаем общее питание
-				actuators_main_power_on(globalFlags.flag_isNeedRevPolMainMotorPwr);
 				// Подаем питание на актуатор UP
-				actuators_start_move_up(UP_ACTUATOR);
+				actuators_power_on(UP_ACTUATOR);
 				// Меняем стадию
 				loop_state = 11;
 				// Сбрасываем пред. время для след. стадии
@@ -682,7 +689,7 @@ static void motor_control_loop(void)
 					// Меняем состояние мотора DOWN
 					motorState.state_DownMotor = MOVING_POS;
 					// Подаем питание на актуатор DOWN
-					actuators_start_move_up(DOWN_ACTUATOR);
+					actuators_power_on(DOWN_ACTUATOR);
 
 					#ifdef ON_DEBUG_MESSAGE
 						HAL_UART_Transmit(&huart1, "Move UP Motor_DOWN\r\n", strlen("Move UP Motor_DOWN\r\n"), 500);
@@ -697,8 +704,8 @@ static void motor_control_loop(void)
 				osTimerStop(upMotor_TimerHandle);
 				// Меняем состояние мотора
 				motorState.state_UpMotor = PULL_UP_POS;
-				// Останавливаем актуатор
-				actuators_stop_move(UP_ACTUATOR);
+				// Снимаем питание с актуатора UP
+				actuators_power_off(UP_ACTUATOR);
 
 				#ifdef ON_DEBUG_MESSAGE
 					HAL_UART_Transmit(&huart1, "Stop Motor_UP\r\n", strlen("Stop Motor_UP\r\n"), 500);
@@ -712,8 +719,8 @@ static void motor_control_loop(void)
 				osTimerStop(downMotor_TimerHandle);
 				// Меняем состояние мотора
 				motorState.state_DownMotor = PULL_UP_POS;
-				// Останавливаем актуатор
-				actuators_stop_move(DOWN_ACTUATOR);
+				// Снимаем питание с актуатора DOWN
+				actuators_power_off(DOWN_ACTUATOR);
 
 				#ifdef ON_DEBUG_MESSAGE
 					HAL_UART_Transmit(&huart1, "Stop Motor_DOWN\r\n", strlen("Stop Motor_DOWN\r\n"), 500);
@@ -729,7 +736,7 @@ static void motor_control_loop(void)
 					// Меняем состояние мотора SIDE
 					motorState.state_SideMotor = MOVING_POS;
 					// Подаем питание на актуатор SIDE
-					actuators_start_move_up(SIDE_ACTUATOR);
+					actuators_power_on(SIDE_ACTUATOR);
 
 					#ifdef ON_DEBUG_MESSAGE
 						HAL_UART_Transmit(&huart1, "Move UP Motor_SIDE\r\n", strlen("Move UP Motor_SIDE\r\n"), 500);
@@ -752,8 +759,8 @@ static void motor_control_loop(void)
 				osTimerStop(sideMotor_TimerHandle);
 				// Меняем состояние мотора
 				motorState.state_SideMotor = PULL_UP_POS;
-				// Останавливаем актуатор
-				actuators_stop_move(SIDE_ACTUATOR);
+				// Снимаем питание с актуатора SIDE
+				actuators_power_off(SIDE_ACTUATOR);
 
 				#ifdef ON_DEBUG_MESSAGE
 					HAL_UART_Transmit(&huart1, "Stop Motor_SIDE\r\n", strlen("Stop Motor_SIDE\r\n"), 500);
@@ -770,17 +777,17 @@ static void motor_control_loop(void)
 
 			// Если доступ получен - выполняем цикл
 			if (ret_stat == osOK) {
+				// Коммутируем актуаторы в направлении для движения "Вниз"
+				actuators_prepare_move(DOWN_DIR, globalFlags.flag_isNeedRevPolMainMotorPwr);
 				// Запускаем сэмплирование каналов current sense resistors
 				current_sense_start_measure();
-				// Включаем общее питание
-				actuators_main_power_on(globalFlags.flag_isNeedRevPolMainMotorPwr);
 
 				// Если панель телескопическая
 				if (COMMON != globalVars.gvar_panel_type) {
 					// Меняем состояние мотора SIDE
 					motorState.state_SideMotor = MOVING_POS;
 					// Подаем питание на актуатор SIDE
-					actuators_start_move_down(SIDE_ACTUATOR);
+					actuators_power_on(SIDE_ACTUATOR);
 
 					#ifdef ON_DEBUG_MESSAGE
 						HAL_UART_Transmit(&huart1, "Move DOWN Motor_SIDE\r\n", strlen("Move DOWN Motor_SIDE\r\n"), 500);
@@ -798,8 +805,8 @@ static void motor_control_loop(void)
 				osTimerStop(sideMotor_TimerHandle);
 				// Меняем состояние мотора
 				motorState.state_SideMotor = PULL_DOWN_POS;
-				// Останавливаем актуатор
-				actuators_stop_move(SIDE_ACTUATOR);
+				// Снимаем питание с актуатора SIDE
+				actuators_power_off(SIDE_ACTUATOR);
 
 				// Т.к. остановка будет по концевику - сбрасываем ошибку
 				globalErrors.error_SideMotorNullCurentError = false;
@@ -818,7 +825,7 @@ static void motor_control_loop(void)
 				// Меняем состояние мотора UP
 				motorState.state_UpMotor = MOVING_POS;
 				// Подаем питание на актуатор UP
-				actuators_start_move_down(UP_ACTUATOR);
+				actuators_power_on(UP_ACTUATOR);
 
 				#ifdef ON_DEBUG_MESSAGE
 					HAL_UART_Transmit(&huart1, "Move DOWN Motor_UP\r\n", strlen("Move DOWN Motor_UP\r\n"), 500);
@@ -829,7 +836,7 @@ static void motor_control_loop(void)
 				// Меняем состояние мотора DOWN
 				motorState.state_DownMotor = MOVING_POS;
 				// Подаем питание на актуатор DOWN
-				actuators_start_move_down(DOWN_ACTUATOR);
+				actuators_power_on(DOWN_ACTUATOR);
 
 				#ifdef ON_DEBUG_MESSAGE
 					HAL_UART_Transmit(&huart1, "Move DOWN Motor_DOWN\r\n", strlen("Move DOWN Motor_DOWN\r\n"), 500);
@@ -843,8 +850,8 @@ static void motor_control_loop(void)
 				osTimerStop(upMotor_TimerHandle);
 				// Меняем состояние мотора
 				motorState.state_UpMotor = PULL_DOWN_POS;
-				// Останавливаем актуатор
-				actuators_stop_move(UP_ACTUATOR);
+				// Снимаем питание с актуатора UP
+				actuators_power_off(UP_ACTUATOR);
 
 				// Т.к. остановка будет по концевику - сбрасываем ошибку
 				globalErrors.error_UpMotorNullCurentError = false;
@@ -861,8 +868,8 @@ static void motor_control_loop(void)
 				osTimerStop(downMotor_TimerHandle);
 				// Меняем состояние мотора
 				motorState.state_DownMotor = PULL_DOWN_POS;
-				// Останавливаем актуатор
-				actuators_stop_move(DOWN_ACTUATOR);
+				// Снимаем питание с актуатора DOWN
+				actuators_power_off(DOWN_ACTUATOR);
 
 				// Т.к. остановка будет по концевику - сбрасываем ошибку
 				globalErrors.error_DownMotorNullCurentError = false;
@@ -884,16 +891,16 @@ static void motor_control_loop(void)
 			osTimerStop(downMotor_TimerHandle);
 			osTimerStop(sideMotor_TimerHandle);
 
-			// Останавливаем актуатор
-			actuators_stop_move(UP_ACTUATOR);
-			actuators_stop_move(DOWN_ACTUATOR);
-			actuators_stop_move(SIDE_ACTUATOR);
+			// Снимаем питание с актуаторов
+			actuators_power_off(UP_ACTUATOR);
+			actuators_power_off(DOWN_ACTUATOR);
 
 			// Устанавливаем в нейтральное положение, чтобы можно было после СТОП в любую сторону ехать
 			motorState.state_UpMotor = NEUTRAL_POS;
 			motorState.state_DownMotor = NEUTRAL_POS;
 
 			if (COMMON != globalVars.gvar_panel_type) {
+				actuators_power_off(SIDE_ACTUATOR);
 				motorState.state_SideMotor = NEUTRAL_POS;
 			}
 
@@ -903,12 +910,12 @@ static void motor_control_loop(void)
 			loop_state = 40;
 			break;
 		case 40:
-			// Выключаем общее питание
-			actuators_main_power_off(globalFlags.flag_isNeedRevPolMainMotorPwr);
 			// Останавливаем сэмплирование каналов current sense resistors
 			current_sense_stop_measure();
 			// Сбрасываем флаг
 			globalFlags.flag_isAdcСonvReady = false;
+			// Выключаем общее питание
+			actuators_main_power_off(globalFlags.flag_isNeedRevPolMainMotorPwr);
 			// Освобождаем доступ к ADC, возвращая mutex
 			osMutexRelease(adcUse_MutexHandle);
 			// Меняем стадию
@@ -1190,7 +1197,7 @@ static ProcessState_t check_ext_voltage_loop(uint32_t meas_delay_ms)
 					// Реверс полярности управления главным питанием моторов НУЖЕН
 					globalFlags.flag_isNeedRevPolMainMotorPwr = true;
 					// Выключаем общее питание актуаторов, включив реле
-					actuators_main_power_off(true);
+					actuators_main_power_off(globalFlags.flag_isNeedRevPolMainMotorPwr);
 				}
 
 				if (reserve_volt != 0 ) {
