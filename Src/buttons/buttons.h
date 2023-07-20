@@ -24,6 +24,7 @@ typedef enum {
 
 void buttons_init(void);
 ButtonState_t buttons_getState(ButtonType_t buttonType);
+void buttons_stopButtonInit(void);
 
 //===================================================================================
 

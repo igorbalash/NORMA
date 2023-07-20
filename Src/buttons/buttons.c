@@ -51,6 +51,21 @@ void buttons_init(void)
 	HAL_NVIC_EnableIRQ(STOP_BUTTON_EXTI_IRQN);
 }
 
+void buttons_stopButtonInit(void)
+{
+	GPIO_InitTypeDef GPIO_InitStruct = {0};
+
+	// gpio clock enable
+	BUTTONS_GPIO_CLK_ENABLE()
+
+	// configure GPIO pins : mode input
+	GPIO_InitStruct.Pin = STOP_BUTTON_PIN;
+	GPIO_InitStruct.Mode = STOP_BUTTON_MODE;
+	GPIO_InitStruct.Pull = STOP_BUTTON_PULL;
+	GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+	HAL_GPIO_Init(STOP_BUTTON_PORT, &GPIO_InitStruct);
+}
+
 ButtonState_t buttons_getState(ButtonType_t buttonType)
 {
 	ButtonState_t ret_state = NOT_PRESSED_BTN;

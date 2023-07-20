@@ -19,14 +19,18 @@ typedef enum {
 	SIDE_ACTUATOR
 } ActuatorType_t;
 
+typedef enum {
+	UP_DIR = 0,
+	DOWN_DIR
+} Direction_t;
+
 //===================================================================================
 
 void actuators_init(void);
-void actuators_start_move_up(ActuatorType_t act_type);
-void actuators_start_move_down(ActuatorType_t act_type);
-void actuators_stop_move(ActuatorType_t act_type);
-void actuators_main_power_on(bool is_need_reverse_polarity);
 void actuators_main_power_off(bool is_need_reverse_polarity);
+void actuators_prepare_move(Direction_t direction, bool is_need_reverse_polarity);
+void actuators_power_on(ActuatorType_t act_type);
+void actuators_power_off(ActuatorType_t act_type);
 
 //===================================================================================
 

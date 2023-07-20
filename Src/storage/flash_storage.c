@@ -5,22 +5,7 @@ Author: Unic-Lab <https://unic-lab.ru/>
 ************************************************************************************/
 
 #include "flash_storage.h"
-#include "version.h"
 #include "storage.h"
-
-//===================================================================================
-
-#define STORAGE_SIZE_SECTORS			4																				// 4 страницы flash выделяем для хранения данных
-
-#if (PRODUCT_HARD == 1)
-	#define STORAGE_START_ADDRESS		0x0800F000																		// 1 стр. 1kB
-#elif (PRODUCT_HARD == 2)
-	#define STORAGE_START_ADDRESS		0x0803E000																		// 1 стр. 2kB
-#else
-	#error "UNKNOWN PRODUCT_HARD!"
-#endif
-
-#define STORAGE_END_ADDRESS				(STORAGE_START_ADDRESS + (_FLASH_SECTOR_SIZE * STORAGE_SIZE_SECTORS))
 
 //===================================================================================
 
