@@ -13,7 +13,7 @@ Author: Unic-Lab <https://unic-lab.ru/>
 
 #define UP_MOTOR_CURR_THRESH_A			2.5f																			// пороговое значения токопотребления верхнего актуатора, А
 #define DOWN_MOTOR_CURR_THRESH_A		2.5f																			// пороговое значения токопотребления нижнего актуатора, А
-#define SIDE_MOTOR_CURR_THRESH_A		2.0f																			// пороговое значения токопотребления одного из боковых актуаторов, А
+#define SIDE_MOTOR_CURR_THRESH_A		1.0f																			// пороговое значения токопотребления одного из боковых актуаторов, А
 
 #define MOTOR_TIMEOUT_MS				20000																			// таймаут при движении актуаторов, мСек
 #define MOTOR_DOWN_MOV_DELAY_MS			3000																			// задержка перед выдвижение нижнего актуатора после начала движения верхнего, мСек

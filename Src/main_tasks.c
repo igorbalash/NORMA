@@ -35,7 +35,7 @@ Author: Unic-Lab <https://unic-lab.ru/>
 
 #define CHECK_EXT_VOLTAGE_PERIOD_MS				60000																	// период измерения внешнего напряжения
 #define MOTOR_MOVING_INDICATION_PERIOD_MS		500																		// период индикации движущихся актуаторов
-#define CURRENT_DETECT_DELAY_MS					300																		// задержка перед измерением тока после запуска процесса
+#define CURRENT_DETECT_DELAY_MS					500																		// задержка перед измерением тока после запуска процесса
 #define BUTTONS_ANTI_BOUNCE_MS					100																		// задержка для устранения дребезга кнопок
 
 //===================================================================================
@@ -555,7 +555,7 @@ static void current_sense_res_loop(void)
 			// Боковые актуаторы если панель не общая
 			if (COMMON != globalVars.gvar_panel_type) {
 				if (MOVING_POS == motorState.state_SideMotor) {
-					if (curr_time_ms - prev_time_sideMotor_ms >= CURRENT_DETECT_DELAY_MS) {
+					if (curr_time_ms - prev_time_sideMotor_ms >= (4 * CURRENT_DETECT_DELAY_MS)) {						// задержка больше чем у одиночного актуатора, т.к. движение не равномерное всех боковых
 						float side_current_amp = current_sense_get_side_current();
 
 					#ifdef ON_DEBUG_MESSAGE
