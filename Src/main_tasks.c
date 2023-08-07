@@ -660,27 +660,74 @@ static void motor_control_loop(void)
 
 			// Если доступ получен - выполняем цикл
 			if (ret_stat == osOK) {
-				// Меняем состояние мотора UP
-				motorState.state_UpMotor = MOVING_POS;
 				// Коммутируем актуаторы в направлении для движения "Вверх"
 				actuators_prepare_move(UP_DIR, globalFlags.flag_isNeedRevPolMainMotorPwr);
 				// Запускаем сэмплирование каналов current sense resistors
 				current_sense_start_measure();
-				// Подаем питание на актуатор UP
-				actuators_power_on(UP_ACTUATOR);
-				// Меняем стадию
-				loop_state = 11;
-				// Сбрасываем пред. время для след. стадии
-				prev_time_ms = curr_time_ms;
 
-				#ifdef ON_DEBUG_MESSAGE
-					HAL_UART_Transmit(&huart1, "Move UP Motor_UP\r\n", strlen("Move UP Motor_UP\r\n"), 500);
-				#endif
+				if (COMMON != globalVars.gvar_panel_type) {
+					// Меняем состояние мотора SIDE
+					motorState.state_SideMotor = MOVING_POS;
+					// Подаем питание на актуатор SIDE
+					actuators_power_on(SIDE_ACTUATOR);
+
+					#ifdef ON_DEBUG_MESSAGE
+						HAL_UART_Transmit(&huart1, "Move UP Motor_SIDE\r\n", strlen("Move UP Motor_SIDE\r\n"), 500);
+					#endif
+
+					// Меняем стадию
+					loop_state = 11;
+				} else {
+					// Меняем стадию
+					loop_state = 12;
+				}
 			}
 			break;
 		}
-		case 11:
-			// С задержкой в MOTOR_DOWN_MOV_DELAY_MS подаем питание на нижний актуатор									// case 1X - процесс ВЫДВИЖЕНИЯ актуаторов
+
+		case 11:																										// case 1X - процесс ВЫДВИЖЕНИЯ актуаторов
+		{
+			// Нужно остановить мотор SIDE
+			if (true == globalFlags.flag_isNeedStopSideMotor) {
+				globalFlags.flag_isNeedStopSideMotor = false;
+				// Останавливаем таймер
+				osTimerStop(sideMotor_TimerHandle);
+				// Меняем состояние мотора
+				motorState.state_SideMotor = PULL_UP_POS;
+				// Снимаем питание с актуатора SIDE
+				actuators_power_off(SIDE_ACTUATOR);
+
+				#ifdef ON_DEBUG_MESSAGE
+					HAL_UART_Transmit(&huart1, "Stop Motor_SIDE\r\n", strlen("Stop Motor_SIDE\r\n"), 500);
+				#endif
+
+				// Меняем стадию
+				loop_state = 12;
+			}
+			break;
+		}
+
+		case 12:																										// case 1X - процесс ВЫДВИЖЕНИЯ актуаторов
+		{
+			// Меняем состояние мотора UP
+			motorState.state_UpMotor = MOVING_POS;
+			// Подаем питание на актуатор UP
+			actuators_power_on(UP_ACTUATOR);
+			// Меняем стадию
+			loop_state = 13;
+			// Сбрасываем пред. время для след. стадии
+			prev_time_ms = curr_time_ms;
+
+			#ifdef ON_DEBUG_MESSAGE
+				HAL_UART_Transmit(&huart1, "Move UP Motor_UP\r\n", strlen("Move UP Motor_UP\r\n"), 500);
+			#endif
+
+			break;
+		}
+
+		case 13:																										// case 1X - процесс ВЫДВИЖЕНИЯ актуаторов
+		{
+			// С задержкой в MOTOR_DOWN_MOV_DELAY_MS подаем питание на нижний актуатор
 			if (MOVING_POS != motorState.state_DownMotor && PULL_UP_POS != motorState.state_DownMotor) {
 				uint32_t curr_time_ms = HAL_GetTick();
 				if (curr_time_ms - prev_time_ms > MOTOR_DOWN_MOV_DELAY_MS) {
@@ -731,45 +778,12 @@ static void motor_control_loop(void)
 			if ((MOVING_POS != motorState.state_UpMotor) && (MOVING_POS != motorState.state_DownMotor) && (true == flag_isDownMotorWasStarted)) {
 				// Сбрасываем флаг
 				flag_isDownMotorWasStarted = false;
-				// Если панель телескопическая - запускаем цикл управления боковой панелью
-				if (COMMON != globalVars.gvar_panel_type) {
-					// Меняем состояние мотора SIDE
-					motorState.state_SideMotor = MOVING_POS;
-					// Подаем питание на актуатор SIDE
-					actuators_power_on(SIDE_ACTUATOR);
-
-					#ifdef ON_DEBUG_MESSAGE
-						HAL_UART_Transmit(&huart1, "Move UP Motor_SIDE\r\n", strlen("Move UP Motor_SIDE\r\n"), 500);
-					#endif
-
-					// Меняем стадию
-					loop_state = 12;
-				} else {
-					// Меняем стадию
-					loop_state = 40;
-				}
-			}
-			break;
-
-		case 12:																										// case 1X - процесс ВЫДВИЖЕНИЯ актуаторов
-			// Нужно остановить мотор SIDE
-			if (true == globalFlags.flag_isNeedStopSideMotor) {
-				globalFlags.flag_isNeedStopSideMotor = false;
-				// Останавливаем таймер
-				osTimerStop(sideMotor_TimerHandle);
-				// Меняем состояние мотора
-				motorState.state_SideMotor = PULL_UP_POS;
-				// Снимаем питание с актуатора SIDE
-				actuators_power_off(SIDE_ACTUATOR);
-
-				#ifdef ON_DEBUG_MESSAGE
-					HAL_UART_Transmit(&huart1, "Stop Motor_SIDE\r\n", strlen("Stop Motor_SIDE\r\n"), 500);
-				#endif
-
 				// Меняем стадию
 				loop_state = 40;
 			}
 			break;
+		}
+
 		case 20:																										// case 2X - процесс ЗАДВИЖЕНИЯ актуаторов
 		{
 			// Защищаем доступ к ADC с помощью mutex
@@ -782,46 +796,6 @@ static void motor_control_loop(void)
 				// Запускаем сэмплирование каналов current sense resistors
 				current_sense_start_measure();
 
-				// Если панель телескопическая
-				if (COMMON != globalVars.gvar_panel_type) {
-					// Меняем состояние мотора SIDE
-					motorState.state_SideMotor = MOVING_POS;
-					// Подаем питание на актуатор SIDE
-					actuators_power_on(SIDE_ACTUATOR);
-
-					#ifdef ON_DEBUG_MESSAGE
-						HAL_UART_Transmit(&huart1, "Move DOWN Motor_SIDE\r\n", strlen("Move DOWN Motor_SIDE\r\n"), 500);
-					#endif
-				} else {
-					// Меняем стадию
-					loop_state = 21;
-				}
-			}
-
-			// Нужно остановить мотор SIDE
-			if (true == globalFlags.flag_isNeedStopSideMotor) {
-				globalFlags.flag_isNeedStopSideMotor = false;
-				// Останавливаем таймер
-				osTimerStop(sideMotor_TimerHandle);
-				// Меняем состояние мотора
-				motorState.state_SideMotor = PULL_DOWN_POS;
-				// Снимаем питание с актуатора SIDE
-				actuators_power_off(SIDE_ACTUATOR);
-
-				// Т.к. остановка будет по концевику - сбрасываем ошибку
-				globalErrors.error_SideMotorNullCurentError = false;
-
-				#ifdef ON_DEBUG_MESSAGE
-					HAL_UART_Transmit(&huart1, "Stop Motor_SIDE\r\n", strlen("Stop Motor_SIDE\r\n"), 500);
-				#endif
-
-				// Меняем стадию
-				loop_state = 21;
-			}
-			break;
-		}
-		case 21:																										// case 2X - процесс ЗАДВИЖЕНИЯ актуаторов
-			if (MOVING_POS != motorState.state_UpMotor && PULL_DOWN_POS != motorState.state_UpMotor) {
 				// Меняем состояние мотора UP
 				motorState.state_UpMotor = MOVING_POS;
 				// Подаем питание на актуатор UP
@@ -830,9 +804,7 @@ static void motor_control_loop(void)
 				#ifdef ON_DEBUG_MESSAGE
 					HAL_UART_Transmit(&huart1, "Move DOWN Motor_UP\r\n", strlen("Move DOWN Motor_UP\r\n"), 500);
 				#endif
-			}
 
-			if (MOVING_POS != motorState.state_DownMotor && PULL_DOWN_POS != motorState.state_DownMotor) {
 				// Меняем состояние мотора DOWN
 				motorState.state_DownMotor = MOVING_POS;
 				// Подаем питание на актуатор DOWN
@@ -841,8 +813,15 @@ static void motor_control_loop(void)
 				#ifdef ON_DEBUG_MESSAGE
 					HAL_UART_Transmit(&huart1, "Move DOWN Motor_DOWN\r\n", strlen("Move DOWN Motor_DOWN\r\n"), 500);
 				#endif
-			}
 
+				// Меняем стадию
+				loop_state = 21;
+			}
+			break;
+		}
+
+		case 21:																										// case 2X - процесс ЗАДВИЖЕНИЯ актуаторов
+		{
 			// Нужно остановить мотор UP
 			if (true == globalFlags.flag_isNeedStopUpMotor) {
 				globalFlags.flag_isNeedStopUpMotor = false;
@@ -879,12 +858,53 @@ static void motor_control_loop(void)
 				#endif
 			}
 
-			// Если актуаторы не в движении - отключаем общее питание
+			// Если актуаторы не в движении - задвигаем боковую панель или отключаем общее питание
 			if ((MOVING_POS != motorState.state_UpMotor) && (MOVING_POS != motorState.state_DownMotor)) {
+				if (COMMON != globalVars.gvar_panel_type) {
+					// Меняем состояние мотора SIDE
+					motorState.state_SideMotor = MOVING_POS;
+					// Подаем питание на актуатор SIDE
+					actuators_power_on(SIDE_ACTUATOR);
+
+					#ifdef ON_DEBUG_MESSAGE
+						HAL_UART_Transmit(&huart1, "Move DOWN Motor_SIDE\r\n", strlen("Move DOWN Motor_SIDE\r\n"), 500);
+					#endif
+
+					// Меняем стадию
+					loop_state = 22;
+				} else {
+					// Меняем стадию
+					loop_state = 40;
+				}
+			}
+			break;
+		}
+
+		case 22:																										// case 2X - процесс ЗАДВИЖЕНИЯ актуаторов
+		{
+			// Нужно остановить мотор SIDE
+			if (true == globalFlags.flag_isNeedStopSideMotor) {
+				globalFlags.flag_isNeedStopSideMotor = false;
+				// Останавливаем таймер
+				osTimerStop(sideMotor_TimerHandle);
+				// Меняем состояние мотора
+				motorState.state_SideMotor = PULL_DOWN_POS;
+				// Снимаем питание с актуатора SIDE
+				actuators_power_off(SIDE_ACTUATOR);
+
+				// Т.к. остановка будет по концевику - сбрасываем ошибку
+				globalErrors.error_SideMotorNullCurentError = false;
+
+				#ifdef ON_DEBUG_MESSAGE
+					HAL_UART_Transmit(&huart1, "Stop Motor_SIDE\r\n", strlen("Stop Motor_SIDE\r\n"), 500);
+				#endif
+
 				// Меняем стадию
 				loop_state = 40;
 			}
 			break;
+		}
+
 		case 30:																										// case 3X - процесс ОСТАНОВКИ ВСЕХ актуаторов
 			// Останавливаем таймер
 			osTimerStop(upMotor_TimerHandle);
@@ -909,6 +929,7 @@ static void motor_control_loop(void)
 			// Меняем стадию
 			loop_state = 40;
 			break;
+
 		case 40:
 			// Останавливаем сэмплирование каналов current sense resistors
 			current_sense_stop_measure();
@@ -925,6 +946,7 @@ static void motor_control_loop(void)
 				HAL_UART_Transmit(&huart1, "MUTEX-Release [motor_control]\r\n", strlen("MUTEX-Release [motor_control]\r\n"), 500);
 			#endif
 			break;
+
 		default:
 			break;
 	}
