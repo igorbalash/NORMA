@@ -34,7 +34,7 @@ Author: Unic-Lab <https://unic-lab.ru/>
 //===================================================================================
 
 #define CHECK_EXT_VOLTAGE_PERIOD_MS				60000																	// период измерения внешнего напряжения
-#define MOTOR_MOVING_INDICATION_PERIOD_MS		500																		// период индикации движущихся актуаторов
+#define MOTOR_MOVING_INDICATION_PERIOD_MS		200																		// период индикации движущихся актуаторов
 #define CURRENT_DETECT_DELAY_MS					500																		// задержка перед измерением тока после запуска процесса
 #define BUTTONS_ANTI_BOUNCE_MS					100																		// задержка для устранения дребезга кнопок
 
@@ -1126,21 +1126,21 @@ static void error_indication_loop(ErrorsType_t error_type)
 			break;
 		case UP_MOTOR_TIMEOUT_ERROR:
 		case UP_MOTOR_NULL_CURRENT_ERROR:
-			if (curr_time_ms - prev_time_ms > 500) {
+			if (curr_time_ms - prev_time_ms > 200) {
 				prev_time_ms = curr_time_ms;
 				leds_ledToggle(RED);
 			}
 			break;
 		case DOWN_MOTOR_TIMEOUT_ERROR:
 		case DOWN_MOTOR_NULL_CURRENT_ERROR:
-			if (curr_time_ms - prev_time_ms > 1000) {
+			if (curr_time_ms - prev_time_ms > 400) {
 				prev_time_ms = curr_time_ms;
 				leds_ledToggle(RED);
 			}
 			break;
 		case SIDE_MOTOR_TIMEOUT_ERROR:
 		case SIDE_MOTOR_NULL_CURRENT_ERROR:
-			if (curr_time_ms - prev_time_ms > 250) {
+			if (curr_time_ms - prev_time_ms > 100) {
 				prev_time_ms = curr_time_ms;
 				leds_ledToggle(RED);
 			}
